@@ -49,16 +49,14 @@ struct TimeRulerView: View {
                         .frame(width: 1, height: s % 10 == 0 ? 14 : 7)
                         .offset(x: x)
                         .padding(.bottom, 16)
-                    if s <= 300 {
-                        if s % 10 == 0 {
-                            Text("\(s)s")
-                                .font(.system(size: 12))
-                                .frame(width: 40)
-                                .bold()
-                                .foregroundColor(.secondary)
-                                .offset(x: x - 15, y: 10)
-                                
-                        }
+                    if s % 10 == 0 {
+                        Text("\(s)s")
+                            .font(.system(size: 12))
+                            .frame(width: 40)
+                            .bold()
+                            .foregroundColor(.secondary)
+                            .offset(x: x - 15, y: 10)
+                            
                     }
                 }
                 

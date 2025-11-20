@@ -10,49 +10,71 @@ import SwiftUI
 import SwiftUI
 
 struct TrackRowView: View {
-    let title: String
-    let duration: Double
-    let startSec: Double
-    let endSec: Double
-    let color: Color
+    let index: Int
+    let segment: AudioSegment
+    let isSelected: Bool
     let pxPerSec: CGFloat
-    
+    let onChangeSelection: (Int, Double, Double) -> Void
+    let onTapPlay: (Int) -> Void
+
+    let height: CGFloat = 30
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title.isEmpty ? "Parça" : title)
-                .font(.subheadline).foregroundColor(.secondary)
+        let totalWidth = CGFloat(300) * pxPerSec    // secondsShown ile aynı (5 dk)
+        let startX = CGFloat(segment.startSec) * pxPerSec
+        let endX   = CGFloat(segment.endSec) * pxPerSec
+
+        VStack(alignment: .leading, spacing: 4) {
+            Text(segment.url.lastPathComponent)
+                .font(.caption)
+                .foregroundColor(isSelected ? .primary : .secondary)
                 .lineLimit(1)
-            
+
             ZStack(alignment: .leading) {
-                // 1) Placeholder waveform barları (gerçek waveform 2. aşama)
-                PlaceholderWaveform(duration: duration, pxPerSec: pxPerSec)
-                    .frame(height: 80)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.12), lineWidth: 1))
-                
-                // 2) Seçilen aralık görseli
-                if endSec > startSec {
-                    let x = CGFloat(startSec) * pxPerSec
-                    let w = CGFloat(endSec - startSec) * pxPerSec
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(color.opacity(0.28))
-                        .frame(width: w, height: 80)
-                        .offset(x: x)
-                        .overlay(
-                            // basit tutacaklar (şimdilik görsel)
-                            HStack {
-                                Rectangle().fill(color.opacity(0.9)).frame(width: 3)
-                                Spacer()
-                                Rectangle().fill(color.opacity(0.9)).frame(width: 3)
+                // arka plan
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.gray.opacity(isSelected ? 0.4 : 0.25))
+                    .frame(width: totalWidth, height: height)
+
+                // seçili aralık
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.blue.opacity(0.4))
+                    .frame(width: max(endX - startX, 0), height: height)
+                    .offset(x: startX)
+
+                // sol handle
+                Circle()
+                    .fill(Color.white)
+                    .frame(width: 14, height: 14)
+                    .offset(x: startX - 7, y: height/2 - 7)
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                let sec = max(0, Double(value.location.x / pxPerSec))
+                                onChangeSelection(index, sec, segment.endSec)
                             }
-                                .frame(width: w, height: 80)
-                                .offset(x: x)
-                        )
-                }
+                    )
+
+                // sağ handle
+                Circle()
+                    .fill(Color.white)
+                    .frame(width: 14, height: 14)
+                    .offset(x: endX - 7, y: height/2 - 7)
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                let sec = max(0, Double(value.location.x / pxPerSec))
+                                onChangeSelection(index, segment.startSec, sec)
+                            }
+                    )
+            }
+            .onTapGesture {
+                onTapPlay(index)     // satıra tıklayınca çal/dur
             }
         }
     }
 }
+
 
 struct PlaceholderWaveform: View {
     let duration: Double

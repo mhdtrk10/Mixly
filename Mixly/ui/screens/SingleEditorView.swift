@@ -19,6 +19,10 @@ struct SingleEditorView: View {
     private let secondsShown: Double = 300           // 5 dakika görünür alan
     private var pxPerSec: CGFloat { timelineWidth / CGFloat(secondsShown) }
 
+    // liste ekranı için
+    @State private var showDemoSheet = false
+    // Demo butonuna ekleyeceğim şarkıların isim uzantıları
+    private let demoSongs: [String] = ["attention", "katy", "streets", "katyvocal"]
     
     init() {
         NavigationBarStyle.setupNavigationBar()
@@ -37,23 +41,34 @@ struct SingleEditorView: View {
                     VStack {
                         ScrollView(.horizontal, showsIndicators: true) {
                             ZStack(alignment: .leading) {
-                                // sabit uzunluktaki Timeline
-                                VStack(alignment: .leading,spacing: 16) {
+                                VStack(alignment: .leading, spacing: 16) {
                                     TimeRulerView(totalSec: secondsShown, pxPerSec: pxPerSec)
                                         .frame(height: 22)
                                         .padding(.leading, 12)
-                                        
-                                    
-                                    TrackBarView(vm: vm, pxPerSec: pxPerSec)
-                                        .padding(12)
-                                    
-                                    
+
+                                    // Birden fazla track'i alt alta çiz
+                                    ForEach(vm.tracks.indices, id: \.self) { idx in
+                                        TrackRowView(
+                                            index: idx,
+                                            segment: vm.tracks[idx],
+                                            isSelected: vm.selectedTrackIndex == idx,
+                                            pxPerSec: pxPerSec,
+                                            onChangeSelection: { index, start, end in
+                                                vm.updateSelection(for: index, start: start, end: end)
+                                            },
+                                            onTapPlay: { index in
+                                                vm.togglePlay(for: index)
+                                            }
+                                        )
+                                    }
+
+
                                 }
-                                
+                                .frame(width: timelineWidth, alignment: .topLeading)
                             }
-                            .frame(width: timelineWidth + 40, height: 500,alignment: .top)
-                            
+                            .frame(height: 500, alignment: .top)
                         }
+
                         
                     }
                     .frame(maxWidth: .infinity, maxHeight: 500,alignment: .top)
@@ -64,13 +79,22 @@ struct SingleEditorView: View {
                     // Alt bar
                     HStack {
                         Button("Demo Ekle") {
-                                vm.addBundledDemo("attention")
+                                //vm.addBundledDemo("attention")
                                 // veya istersen iki tane de yükleyebilirsin, ikincisini sonradan çalarız
                                 //vm.addBundledDemo("katy")
+                            showDemoSheet = true
                             }
                         Spacer()
-                        Button(vm.isPlaying ? "Durdur" : "Çal") { vm.togglePlay() }
-                            .buttonStyle(.borderedProminent)
+                        Button(vm.isPlaying ? "Durdur" : "Çal") {
+                            if vm.selectedTrackIndex == nil, !vm.tracks.isEmpty {
+                                vm.selectedTrackIndex = 0
+                            }
+                            if let idx = vm.selectedTrackIndex {
+                                vm.togglePlay(for: idx)
+                            }
+                        }
+                        
+                        .buttonStyle(.borderedProminent)
                         Spacer()
                     }
                     .padding()
@@ -82,6 +106,29 @@ struct SingleEditorView: View {
         }
         .onAppear { configureAudioSession() }
         .fileImporter(isPresented: $showPicker, allowedContentTypes: [.audio]) { vm.handlePick(result: $0) }
+        .sheet(isPresented: $showDemoSheet) {
+            NavigationStack {
+                List {
+                    ForEach(demoSongs, id: \.self) { name in
+                        Button {
+                            vm.addBundledDemo(name)
+                            showDemoSheet = false
+                        } label: {
+                            HStack {
+                                Image(systemName: "music.note")
+                                Text(name)
+                            }
+                        }
+                    }
+                }
+                .navigationTitle("Müzik Seç")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("kapat") { showDemoSheet = false }
+                    }
+                }
+            }
+        }
         
     }
 
@@ -93,6 +140,7 @@ struct SingleEditorView: View {
     }
 }
 // Placeholder track bar (waveform yerine sade çubuk)
+/*
 private struct TrackBarView: View {
     
     @ObservedObject var vm: SingleTrackViewModel
@@ -159,7 +207,7 @@ private struct TrackBarView: View {
          */
     }
 }
-
+*/
 
 
 #Preview {
