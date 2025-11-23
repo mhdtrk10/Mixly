@@ -60,11 +60,12 @@ struct SingleEditorView: View {
                                                 vm.togglePlay(for: index)
                                             }
                                         )
+                                        
                                     }
-
+                                    .padding(.leading, 12)
 
                                 }
-                                .frame(width: timelineWidth, alignment: .topLeading)
+                                .frame(width: timelineWidth + 40, alignment: .topLeading)
                             }
                             .frame(height: 500, alignment: .top)
                         }
@@ -93,10 +94,20 @@ struct SingleEditorView: View {
                                 vm.togglePlay(for: idx)
                             }
                         }
-                        
                         .buttonStyle(.borderedProminent)
+                        .frame(width: 80)
                         Spacer()
+                        Picker("Çalma Modu", selection: $vm.playbackMode) {
+                            Text("Playlist").tag(SingleTrackViewModel.PlaybackMode.playList)
+                            Text("Mix MultiTrack").tag(SingleTrackViewModel.PlaybackMode.multiTrack)
+                        }
+                        .pickerStyle(.segmented)
+                        
+                        
+                        
+                        
                     }
+                    .frame(maxWidth: .infinity)
                     .padding()
                 }
                 .navigationTitle("Mixly — Tek Parça")

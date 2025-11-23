@@ -12,6 +12,7 @@ struct AudioSegment {
     var durationSec: Double
     var startSec: Double = 0
     var endSec: Double
+    var waveform: [Float]? = nil
     
     init(url: URL, durationSec: Double) {
         self.url = url

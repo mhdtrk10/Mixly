@@ -1,27 +1,27 @@
 //
-//  SingleAudioEngine.swift
+//  SingleTrackAudioEngine.swift
 //  Mixly
 //
-//  Created by Mehdi Oturak on 15.11.2025.
+//  Created by Mehdi Oturak on 24.11.2025.
 //
 
 import Foundation
 import AVFoundation
 
-/// Sadece TEK parçayı çalmak için minimal motor
-final class SingleAudioEngine {
+
+final class SingleTrackAudioEngine {
     private let engine = AVAudioEngine()
     private let player = AVAudioPlayerNode()
 
     private var file: AVAudioFile?
     private var segment: AudioSegment?
-
+    private var onFinish: (() -> Void)?
     init() {
         engine.attach(player)
-        // Basit zincir: player -> mainMixer
         engine.connect(player, to: engine.mainMixerNode, format: nil)
     }
 
+    // Hangi şarkıyı / aralığı çalacağımızı ayarla
     func setSegment(_ seg: AudioSegment?) throws {
         segment = seg
         if let seg {
@@ -32,26 +32,41 @@ final class SingleAudioEngine {
         try startEngineIfNeeded()
     }
 
-    func play() throws {
+    // Seçili aralığı çal
+    func play(onFinish: (() -> Void)? = nil) throws {
         guard let seg = segment, let f = file else { return }
+        
+        self.onFinish = onFinish
         player.stop()
 
         let sr = f.processingFormat.sampleRate
         let startFrame = AVAudioFramePosition(seg.startSec * sr)
         let frames = AVAudioFrameCount(seg.selectedLengthSec * sr)
-        print("🎚️ startFrame=\(startFrame) frames=\(frames) sr=\(sr)")
-        guard frames > 0 else { print("⛔️ frames=0"); return }
+        guard frames > 0 else { return }
 
-        player.scheduleSegment(f, startingFrame: startFrame, frameCount: frames, at: nil, completionHandler: nil)
+        player.scheduleSegment(
+            f,
+            startingFrame: startFrame,
+            frameCount: frames,
+            at: nil
+        ) { [weak self] in
+            guard let self = self else { return }
+            DispatchQueue.main.async {
+                self.onFinish?()
+            }
+        }
+
         try startEngineIfNeeded()
         player.play()
     }
 
     func stop() {
         player.stop()
+        onFinish = nil
     }
 
-    // MARK: - Helpers
+    // MARK: - Engine başlatma
+
     private func startEngineIfNeeded() throws {
         let s = AVAudioSession.sharedInstance()
         try? s.setCategory(.playback, mode: .default, options: [.mixWithOthers, .defaultToSpeaker])
@@ -63,3 +78,4 @@ final class SingleAudioEngine {
         }
     }
 }
+

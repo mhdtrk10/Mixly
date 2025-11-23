@@ -17,50 +17,56 @@ struct TrackRowView: View {
     let onChangeSelection: (Int, Double, Double) -> Void
     let onTapPlay: (Int) -> Void
 
-    let height: CGFloat = 30
-
+    let height: CGFloat = 60
+    let secondsShown: Double = 300
+    
     var body: some View {
-        let totalWidth = CGFloat(300) * pxPerSec    // secondsShown ile aynı (5 dk)
+        let trackDuration = segment.durationSec
+        let totalWidth = CGFloat(trackDuration) * pxPerSec
         let startX = CGFloat(segment.startSec) * pxPerSec
         let endX   = CGFloat(segment.endSec) * pxPerSec
-
+        
         VStack(alignment: .leading, spacing: 4) {
+            // şarkı adı
             Text(segment.url.lastPathComponent)
                 .font(.caption)
                 .foregroundColor(isSelected ? .primary : .secondary)
                 .lineLimit(1)
-
+            
             ZStack(alignment: .leading) {
                 // arka plan
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(Color.gray.opacity(isSelected ? 0.4 : 0.25))
+                    .fill(Color.black.opacity(0.35))
                     .frame(width: totalWidth, height: height)
-
+                
+                // waveform - ses dalgası
+                if let wf = segment.waveform, !wf.isEmpty {
+                    WaveformView(samples: wf)
+                        .frame(width: totalWidth, height: height)
+                        .clipped()
+                        
+                }
+                
                 // seçili aralık
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(Color.blue.opacity(0.4))
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.blue.opacity(0.35))
                     .frame(width: max(endX - startX, 0), height: height)
                     .offset(x: startX)
-
-                // sol handle
-                Circle()
-                    .fill(Color.white)
-                    .frame(width: 14, height: 14)
-                    .offset(x: startX - 7, y: height/2 - 7)
+                
+                // handle'lar
+                handleCircle
+                    .offset(x: startX - 7, y: height / 2 - 7)
                     .gesture(
                         DragGesture()
                             .onChanged { value in
-                                let sec = max(0, Double(value.location.x / pxPerSec))
+                                let sec = max(0,Double(value.location.x / pxPerSec))
                                 onChangeSelection(index, sec, segment.endSec)
                             }
                     )
-
-                // sağ handle
-                Circle()
-                    .fill(Color.white)
-                    .frame(width: 14, height: 14)
-                    .offset(x: endX - 7, y: height/2 - 7)
-                    .gesture(
+                
+                handleCircle
+                    .offset(x: endX - 7, y: height / 2 - 7)
+                    .gesture (
                         DragGesture()
                             .onChanged { value in
                                 let sec = max(0, Double(value.location.x / pxPerSec))
@@ -72,6 +78,14 @@ struct TrackRowView: View {
                 onTapPlay(index)     // satıra tıklayınca çal/dur
             }
         }
+        
+        
+    }
+    private var handleCircle: some View {
+        Circle()
+            .fill(Color.white)
+            .shadow(radius: 1)
+            .frame(width: 14, height: 14)
     }
 }
 
@@ -94,7 +108,7 @@ struct PlaceholderWaveform: View {
                 let amp = CGFloat((sin(Double(i) * 0.35) * 0.5 + 0.5)) // 0..1
                 let h = 8 + amp * 64
                 Rectangle()
-                    .fill(Color.white.opacity(0.6))
+                    .fill(Color.black.opacity(0.6))
                     .frame(width: 2, height: h)
                     .offset(x: CGFloat(i) * stepPx, y: (80 - h)/2)
             }
