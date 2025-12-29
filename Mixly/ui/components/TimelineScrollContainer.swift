@@ -45,7 +45,7 @@ struct TimeRulerView: View {
                 ForEach(0...secCount, id: \.self) { s in
                     let x = CGFloat(s) * pxPerSec
                     Rectangle()
-                        .fill(Color.black.opacity(s % 10 == 0 ? 0.7 : 0.35))
+                        .fill(Color.white.opacity(s % 10 == 0 ? 0.7 : 0.35))
                         .frame(width: 1, height: s % 10 == 0 ? 14 : 7)
                         .offset(x: x)
                         .padding(.bottom, 16)
@@ -54,7 +54,7 @@ struct TimeRulerView: View {
                             .font(.system(size: 12))
                             .frame(width: 40)
                             .bold()
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.white)
                             .offset(x: x - 15, y: 10)
                             
                     }

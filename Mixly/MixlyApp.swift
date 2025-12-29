@@ -11,7 +11,7 @@ import SwiftUI
 struct MixlyApp: App {
     var body: some Scene {
         WindowGroup {
-            SingleEditorView()
+            HomeView()
         }
     }
 }

@@ -14,7 +14,7 @@ final class SingleTrackViewModel: ObservableObject {
     
     
     enum PlaybackMode: String, CaseIterable {
-        case playList
+        case sequence
         case multiTrack
     }
     @Published var playbackMode: PlaybackMode = .multiTrack
@@ -23,6 +23,8 @@ final class SingleTrackViewModel: ObservableObject {
     @Published var selectedTrackIndex: Int? = nil // şuan seçili satır
     @Published var isPlaying: Bool = false
     @Published var currentSec: Double = 0 // sadece seçili track için playhead
+    
+    
     
     private var currentSegment: AudioSegment? {
         guard let idx = selectedTrackIndex, tracks.indices.contains(idx) else { return nil }
@@ -46,7 +48,6 @@ final class SingleTrackViewModel: ObservableObject {
     func handlePick(result: Result<URL, Error>) {
         guard case .success(let url) = result else { return }
 
-        // Eğer çalıyorsa durdur ve progress task'i temizle
         if isPlaying {
             singleEngine.stop()
             multiEngine.stop()
@@ -54,38 +55,33 @@ final class SingleTrackViewModel: ObservableObject {
             stopProgressTask()
         }
 
-        // Files (sandbox dışı) için güvenlik erişimi aç
         let ok = url.startAccessingSecurityScopedResource()
         if ok { accessedURLs.insert(url) }
-        print("security access:", ok, url.lastPathComponent)
 
-        // Süreyi iOS 16+ için async güvenli şekilde yükle
         Task { @MainActor in
             let dur = await readDurationSec(url: url)
-            print("🎵 seçildi: \(url.lastPathComponent)  süre: \(dur)s")
-            let wf = await loadWaveform(url: url)
-            // 1) Yeni segment oluştur
-            //let seg = AudioSegment(url: url, durationSec: dur)
+            let wf  = await loadWaveform(url: url)
+
             var seg = AudioSegment(url: url, durationSec: dur)
             seg.waveform = wf
-            // 2) tracks listesine ekle
+
+            // 🔹 Default 20–30 aralığı
+            let range = defaultRange(for: dur)
+            seg.startSec = range.start
+            seg.endSec   = range.end
+
             tracks.append(seg)
             let newIndex = tracks.count - 1
-            // 3) yeni eklenenin index'i
             selectedTrackIndex = newIndex
-
-            // 4) playhead'i bu parçanın başlangıcına al
             currentSec = seg.startSec
-            
-            // 5) motoru bu parça ile hazırla
-            if playbackMode == .playList {
+
+            if playbackMode == .sequence {
                 try? singleEngine.setSegment(seg)
             }
-
-            
             try? multiEngine.setTracks(tracks)
         }
     }
+
 
 
 
@@ -109,7 +105,7 @@ final class SingleTrackViewModel: ObservableObject {
         
         switch playbackMode {
             // sadece tek şarkı yapıp sırayla çalmak için
-        case .playList:
+        case .sequence:
             playPlayList(from: index)
             
             // aynı anda istediği şarkıları çalmak için
@@ -153,24 +149,31 @@ final class SingleTrackViewModel: ObservableObject {
             print("⛔️ Demo dosyası bulunamadı: \(name).\(ext)")
             return
         }
+
         Task { @MainActor in
             let dur = await readDurationSec(url: url)
-            //print("🎵 Demo yüklendi: \(name) (\(dur)s)")
-            //let seg = AudioSegment(url: url, durationSec: dur)
-            let wf = await loadWaveform(url: url)
-            print("demo yüklendi: \(name) (\(dur)s) wfCount=\(wf.count)")
+            let wf  = await loadWaveform(url: url)
+
             var seg = AudioSegment(url: url, durationSec: dur)
             seg.waveform = wf
-            // yeni track'i listeye ekle
+
+            // 🔹 Default 20–30 aralığını ayarla
+            let range = defaultRange(for: dur)
+            seg.startSec = range.start
+            seg.endSec   = range.end
+
             tracks.append(seg)
-            selectedTrackIndex = tracks.count - 1
+            let newIndex = tracks.count - 1
+            selectedTrackIndex = newIndex
             currentSec = seg.startSec
-            
+
+            if playbackMode == .sequence {
+                try? singleEngine.setSegment(seg)
+            }
             try? multiEngine.setTracks(tracks)
-            //segment = seg
-            //try? engine.setSegment(seg)
         }
     }
+
     private func startProgressTask() {
         // Eski task varsa iptal et
         progressTask?.cancel()
@@ -184,7 +187,7 @@ final class SingleTrackViewModel: ObservableObject {
             // Mix / playlist moduna göre toplam süre
             let totalLength: Double = await MainActor.run {
                 switch self.playbackMode {
-                case .playList:
+                case .sequence:
                     let startIdx = self.playListStartIndex ?? self.selectedTrackIndex ?? 0
                     guard self.tracks.indices.contains(startIdx) else { return 0 }
                     let slice = self.tracks[startIdx...]
@@ -239,7 +242,7 @@ final class SingleTrackViewModel: ObservableObject {
         tracks[index] = seg
         
         switch playbackMode {
-        case .playList:
+        case .sequence:
             if selectedTrackIndex == index {
                 try? singleEngine.setSegment(seg)
             }
@@ -336,7 +339,7 @@ final class SingleTrackViewModel: ObservableObject {
             
             DispatchQueue.main.async {
                 let nextIndex = index + 1
-                if self.playbackMode == .playList, self.isPlaying {
+                if self.playbackMode == .sequence, self.isPlaying {
                     self.playTrack(at: nextIndex)
                 } else {
                     self.isPlaying = false
@@ -346,5 +349,28 @@ final class SingleTrackViewModel: ObservableObject {
             
         })
     }
+    
+    private func defaultRange(for duration: Double) -> (start: Double, end: Double) {
+        // Şarkı çok kısaysa: tamamını seç
+        if duration <= 10 {
+            return (0, duration)
+        }
+
+        // 10–30 sn arasıysa: son 10 saniyeyi seç
+        if duration <= 30 {
+            return (max(0, duration - 10), duration)
+        }
+
+        // 30 saniyeden uzunsa: 20–30 arası
+        let start = 20.0
+        let end = min(30.0, duration)   // Şarkı 25 sn ise 20–25 gibi
+        return (start, end)
+    }
+    
+    
+    
+    
+    
+    
 }
 

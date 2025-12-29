@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-import SwiftUI
+
 
 struct TrackRowView: View {
     let index: Int
@@ -36,7 +36,7 @@ struct TrackRowView: View {
             ZStack(alignment: .leading) {
                 // arka plan
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(Color.black.opacity(0.35))
+                    .fill(Color.blue)
                     .frame(width: totalWidth, height: height)
                 
                 // waveform - ses dalgası
@@ -47,11 +47,21 @@ struct TrackRowView: View {
                         
                 }
                 
-                // seçili aralık
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.blue.opacity(0.35))
-                    .frame(width: max(endX - startX, 0), height: height)
-                    .offset(x: startX)
+                
+                // Sol taraf (başlangıca kadar)
+                if startX > 0 {
+                    Rectangle()
+                        .fill(Color.black.opacity(0.45))
+                        .frame(width: startX, height: height)
+                }
+                
+                // Sağ taraf (bitişten sona kadar)
+                if endX < totalWidth {
+                    Rectangle()
+                        .fill(Color.black.opacity(0.45))
+                        .frame(width: totalWidth - endX, height: height)
+                        .offset(x: endX)
+                }
                 
                 // handle'lar
                 handleCircle
@@ -78,14 +88,56 @@ struct TrackRowView: View {
                 onTapPlay(index)     // satıra tıklayınca çal/dur
             }
         }
-        
+        .padding(.vertical, 4)
+        .padding(.horizontal, 4)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.white.opacity(0.03))
+                .overlay (
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(
+                            isSelected
+                            ? AnyShapeStyle(
+                                Color.black.opacity(0.35)
+                            )
+                            : AnyShapeStyle(
+                                Color.white.opacity(0.06)
+                            ),
+                            lineWidth: isSelected ? 1.5 : 0.8
+                        )
+                        .shadow(
+                            color :isSelected
+                            ? Color.accentColor.opacity(0.5)
+                            : Color.clear,
+                            radius: 10, x: 0, y: 4
+                        )
+                )
+        )
+        .animation(.easeInOut(duration: 0.2), value: isSelected)
         
     }
     private var handleCircle: some View {
+        /*
         Circle()
             .fill(Color.white)
             .shadow(radius: 1)
             .frame(width: 14, height: 14)
+         */
+        Circle()
+            .fill(Color.white)
+            .frame(width: 14, height: 14)
+            .overlay (
+                Circle()
+                    .stroke(
+                        LinearGradient(
+                            colors: [Color(hex: "7F5AF0"), Color(hex: "3D9FFF")],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.2
+                    )
+            )
+            .shadow(color: Color.accentColor.opacity(0.7), radius: 6)
     }
 }
 
@@ -117,3 +169,18 @@ struct PlaceholderWaveform: View {
     }
 }
 
+
+
+extension Color {
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+
+        let r = Double((int >> 16) & 0xFF) / 255.0
+        let g = Double((int >> 8) & 0xFF) / 255.0
+        let b = Double(int & 0xFF) / 255.0
+
+        self.init(red: r, green: g, blue: b)
+    }
+}

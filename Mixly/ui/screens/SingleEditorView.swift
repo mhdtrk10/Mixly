@@ -12,40 +12,43 @@ import AVFoundation
 struct SingleEditorView: View {
     @StateObject private var vm = SingleTrackViewModel()
     @State private var showPicker = false
-    
-    //private let pxPerSec: CGFloat = 80 // 1sn = 80pt (zoom gibi)
+    // liste ekranı için
+    @State private var showDemoSheet = false
 
     private let timelineWidth: CGFloat = 3000        // sabit genişlik (pt)
     private let secondsShown: Double = 300           // 5 dakika görünür alan
     private var pxPerSec: CGFloat { timelineWidth / CGFloat(secondsShown) }
 
-    // liste ekranı için
-    @State private var showDemoSheet = false
     // Demo butonuna ekleyeceğim şarkıların isim uzantıları
     private let demoSongs: [String] = ["attention", "katy", "streets", "katyvocal"]
     
     init() {
         NavigationBarStyle.setupNavigationBar()
     }
+    /*
+    ClipTimelineView(clips: $vm.clips, tracks: vm.tracks, secondsShown: secondsShown, pxPerSec: pxPerSec, selectedClipID: $vm.selectedClipID, playheadSec: vm.playHeadSec)
+        .padding(.leading, 12)
+     */
     
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color(.green).opacity(0.2)
-                    .ignoresSafeArea(edges: .all)
+        ZStack {
+            Color(AppColors.Background)
+                .ignoresSafeArea(edges: .all)
+            
+            VStack {
                 
+                // Yeni TimeLine alanı
                 VStack {
-                    
-                    
-                    // Yeni TimeLine alanı
-                    VStack {
-                        ScrollView(.horizontal, showsIndicators: true) {
+                    ScrollView(.horizontal, showsIndicators: true) {
+                        ScrollView(.vertical, showsIndicators: true) {
                             ZStack(alignment: .leading) {
-                                VStack(alignment: .leading, spacing: 16) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    
                                     TimeRulerView(totalSec: secondsShown, pxPerSec: pxPerSec)
                                         .frame(height: 22)
                                         .padding(.leading, 12)
-
+                                    
+                                    
                                     // Birden fazla track'i alt alta çiz
                                     ForEach(vm.tracks.indices, id: \.self) { idx in
                                         TrackRowView(
@@ -63,28 +66,30 @@ struct SingleEditorView: View {
                                         
                                     }
                                     .padding(.leading, 12)
-
+                                    .padding(.top, 8)
                                 }
                                 .frame(width: timelineWidth + 40, alignment: .topLeading)
                             }
-                            .frame(height: 500, alignment: .top)
+                            .frame(maxHeight: .infinity, alignment: .top)
                         }
-
-                        
                     }
-                    .frame(maxWidth: .infinity, maxHeight: 500,alignment: .top)
-                    .background(Color.blue.opacity(0.2))
                     
-                  
-
-                    // Alt bar
+                    
+                }
+                .frame(maxWidth: .infinity, maxHeight: 500,alignment: .top)
+                .padding(.top, 4)
+                
+                
+                // Alt bar
+                VStack(spacing: 4) {
                     HStack {
                         Button("Demo Ekle") {
-                                //vm.addBundledDemo("attention")
-                                // veya istersen iki tane de yükleyebilirsin, ikincisini sonradan çalarız
-                                //vm.addBundledDemo("katy")
                             showDemoSheet = true
-                            }
+                        }
+                        
+                        
+                        
+                        
                         Spacer()
                         Button(vm.isPlaying ? "Durdur" : "Çal") {
                             if vm.selectedTrackIndex == nil, !vm.tracks.isEmpty {
@@ -96,24 +101,24 @@ struct SingleEditorView: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .frame(width: 80)
+                        
+                        
                         Spacer()
                         Picker("Çalma Modu", selection: $vm.playbackMode) {
-                            Text("Playlist").tag(SingleTrackViewModel.PlaybackMode.playList)
+                            Text("Playlist").tag(SingleTrackViewModel.PlaybackMode.sequence)
                             Text("Mix MultiTrack").tag(SingleTrackViewModel.PlaybackMode.multiTrack)
                         }
                         .pickerStyle(.segmented)
-                        
-                        
-                        
-                        
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
+                    
                 }
-                .navigationTitle("Mixly — Tek Parça")
-                .frame(maxWidth: .infinity, maxHeight: .infinity,alignment: .top)
-                .background(Color.gray.opacity(0.2))
+                
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity,alignment: .top)
+            .navigationTitle("Editör")
+            
         }
         .onAppear { configureAudioSession() }
         .fileImporter(isPresented: $showPicker, allowedContentTypes: [.audio]) { vm.handlePick(result: $0) }
@@ -132,7 +137,8 @@ struct SingleEditorView: View {
                         }
                     }
                 }
-                .navigationTitle("Müzik Seç")
+                .navigationTitle("Müzikler")
+                .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("kapat") { showDemoSheet = false }
@@ -140,7 +146,6 @@ struct SingleEditorView: View {
                 }
             }
         }
-        
     }
 
     // Ses oturumunu aç
@@ -150,75 +155,6 @@ struct SingleEditorView: View {
         try? s.setActive(true)
     }
 }
-// Placeholder track bar (waveform yerine sade çubuk)
-/*
-private struct TrackBarView: View {
-    
-    @ObservedObject var vm: SingleTrackViewModel
-    let pxPerSec: CGFloat
-    //let duration: Double      // burada ‘görsel süre’ = secondsShown
-    let height: CGFloat = 30
-    @GestureState private var dragOffset: CGFloat = 0
-
-    var body: some View {
-        let totalWidth = CGFloat(vm.segment?.durationSec ?? 300) * pxPerSec
-        let startX = CGFloat(vm.segment?.startSec ?? 0) * pxPerSec
-        let endX = CGFloat(vm.segment?.endSec ?? 300) * pxPerSec
-        
-        ZStack(alignment: .leading) {
-            // arka plan
-            RoundedRectangle(cornerRadius: 6)
-                .fill(Color.gray.opacity(0.3))
-                .frame(width: totalWidth, height: height)
-            
-            // seçili arka plan
-            RoundedRectangle(cornerRadius: 6)
-                .fill(Color.blue.opacity(0.4))
-                .frame(width: max(endX - startX, 0), height: height)
-                .offset(x: startX)
-            
-            // sol handle
-            Circle()
-                .fill(Color.white)
-                .frame(width: 16, height: 16)
-                .offset(x: startX - 8, y: height/2 - 8)
-                .gesture(DragGesture()
-                    .onChanged { value in
-                        let seconds = max(0, Double((value.location.x) / pxPerSec))
-                        vm.updateSelection(start: seconds, end: vm.segment?.endSec ?? seconds)
-                    }
-                )
-            
-            // sağ handle
-            Circle()
-                .fill(Color.white)
-                .frame(width: 16, height: 16)
-                .offset(x: endX - 8, y: height/2 - 8)
-                .gesture(DragGesture()
-                    .onChanged { value in
-                        let seconds = max(0, Double((value.location.x) / pxPerSec))
-                        vm.updateSelection(start: vm.segment?.startSec ?? 0, end: seconds)
-                    }
-                )
-
-        }
-        .frame(width: totalWidth, height: height)
-        //let width = CGFloat(duration) * pxPerSec   // = timelineWidth
-        /*
-        ZStack(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color.black.opacity(0.35))
-                .frame(width: width, height: 40)
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.12)))
-            Text("Tıkla: Çal/Durdur")
-                .font(.footnote)
-                .foregroundColor(.secondary)
-                .padding(.leading, 8)
-        }
-         */
-    }
-}
-*/
 
 
 #Preview {
