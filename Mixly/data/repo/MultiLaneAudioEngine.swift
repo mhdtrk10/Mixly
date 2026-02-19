@@ -40,64 +40,64 @@ final class MultiLaneAudioEngine {
     }
 
     /// lanes + sources'tan clip listesi üretip timeline'a göre çalar
-    func play(lanes: [Lane], sources: [AudioSource], leadInSec: Double = 0.5) throws {
+    func play(
+        lanes: [Lane],
+        sources: [AudioSource],
+        startAtSec: Double = 0,          // ✅ yeni
+        leadInSec: Double = 0.5
+    ) throws {
         stop()
         try prepareSessionIfNeeded()
-
-        // 1) Clip listesi
+        
         let clips = try buildClips(lanes: lanes, sources: sources)
-
-        // 2) Lane başına player kur
         try setupPlayers(for: lanes)
-
-        // 3) Engine start
         try engine.start()
-
-        // 4) Ortak başlangıç hostTime (küçük bir lead-in veriyoruz ki schedule yetişsin)
+        
         let startHost = currentHostTime() + secondsToHostTime(leadInSec)
-
-
-        // 5) Her lane'in player'ına schedule et
-        // Lane bazında gruplayıp, timelineStart'a göre sırala
+        
         let clipsByLane = Dictionary(grouping: clips, by: { $0.laneID })
-
+        
         for (laneID, laneClips) in clipsByLane {
             guard let player = players[laneID] else { continue }
-
-            // Aynı lane’de üst üste bindirme olmasın diye sırala
+            
             let ordered = laneClips.sorted { $0.timelineStartSec < $1.timelineStartSec }
-
+            
             for c in ordered {
+                // ✅ startAtSec’ten önce başlayanları atla / kes
+                let clipEnd = c.timelineStartSec + c.lengthSec
+                if clipEnd <= startAtSec { continue } // tamamen geride kaldı
+                
+                // clip'in timeline'daki efektif başlangıcı
+                let effectiveTimelineStart = max(c.timelineStartSec, startAtSec)
+                
+                // clip'in source içinde nereden başlanacağı (kırpma)
+                let cut = effectiveTimelineStart - c.timelineStartSec
+                let effectiveSourceStart = c.sourceStartSec + cut
+                
+                // kalan süre
+                let effectiveLen = max(0, clipEnd - effectiveTimelineStart)
+                
                 let file = try cachedFile(for: c.sourceURL)
                 let sr = file.processingFormat.sampleRate
-
-                let startFrame = AVAudioFramePosition(c.sourceStartSec * sr)
-                let frames = AVAudioFrameCount(max(0, c.lengthSec * sr))
-
+                
+                let startFrame = AVAudioFramePosition(effectiveSourceStart * sr)
+                let frames = AVAudioFrameCount(max(0, effectiveLen * sr))
                 guard frames > 0 else { continue }
-
-                let clipHost = startHost + secondsToHostTime(c.timelineStartSec)
+                
+                // ✅ schedule zamanı: (effectiveTimelineStart - startAtSec) kadar gecikme
+                let clipHost = startHost + secondsToHostTime(effectiveTimelineStart - startAtSec)
                 let when = AVAudioTime(hostTime: clipHost)
-
-                // 🎯 En kritik satır: timelineStartSec anında başlayacak şekilde schedule
-                player.scheduleSegment(
-                    file,
-                    startingFrame: startFrame,
-                    frameCount: frames,
-                    at: when,
-                    completionHandler: nil
-                )
-
-                print("🎚️ scheduled t=\(c.timelineStartSec) lane=\(laneID) src=\(c.sourceStartSec) len=\(c.lengthSec) \(c.sourceURL.lastPathComponent)")
-
+                
+                player.scheduleSegment(file,
+                                       startingFrame: startFrame,
+                                       frameCount: frames,
+                                       at: when,
+                                       completionHandler: nil)
             }
-
-            // Player'ı da aynı ortak hostTime'da başlatıyoruz
+            
             player.play(at: AVAudioTime(hostTime: startHost))
-            print("▶️ lane \(laneID) started at host \(startHost)")
-
         }
-
+        
         isPlaying = true
     }
 

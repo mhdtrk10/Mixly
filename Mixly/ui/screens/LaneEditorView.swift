@@ -31,11 +31,19 @@ struct LaneEditorView: View {
         case firstOrNewLane
         case appendRight
     }
+    
+    @EnvironmentObject private var themeManager: ThemeManager
+    
 
+    
+    
     var body: some View {
         ZStack {
-            AppColors.Background.ignoresSafeArea()
-
+           
+            
+            themeManager.theme.background
+                .ignoresSafeArea()
+            
             VStack(spacing: 12) {
 
                 ScrollView(.horizontal, showsIndicators: true) {
@@ -51,95 +59,151 @@ struct LaneEditorView: View {
                                 targetLaneID = nil
                                 showSongPickerSheet = true
                             } label: {
-                                HStack {
-                                    Image(systemName: "plus.circle.fill")
-                                    Text("Şarkı Ekle")
-                                }
-                                .padding(.vertical, 12)
-                                .padding(.horizontal, 14)
-                                .background(Color.white.opacity(0.08))
-                                .cornerRadius(14)
+                                Text("Şarkı Ekle")
+                                    .foregroundStyle(.white)
+                                    .padding(.vertical, 12)
+                                    .padding(.horizontal, 14)
+                                    .frame(maxWidth: 150, maxHeight: 50, alignment: .center)
+                                    .background(Color.accentColor.opacity(0.5))
+                                    .cornerRadius(14)
+                                    
                             }
-                            .padding(.leading, 12)
-                            .frame(width: timelineWidth, alignment: .leading)
-
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 8)
+                            .buttonStyle(PressableStyle())
+                            .simultaneousGesture(DragGesture(minimumDistance: 0))
+                            
+                            
                         } else {
-                            VStack(alignment: .leading, spacing: 12) {
-                                ForEach(vm.lanes) { lane in
-                                    LaneRowView(
-                                        lane: lane,
-                                        sources: vm.sources,
-                                        pxPerSec: pxPerSec,
-                                        isSelected: vm.selectedLaneID == lane.id,
-                                        timelineWidth: timelineWidth,
-                                        onMoveItem: { itemID, newStart in
-                                            vm.moveItem(laneID: lane.id, itemID: itemID, newTimelineStart: newStart)
-                                        },
-                                        onTapItem: { item in
-                                            vm.beginEdit(laneID: lane.id, item: item)
-                                        },
-                                        onTapLane: {
-                                            vm.selectLane(lane.id)
-                                        },
-                                        onTapAppendRight: {
-                                            vm.selectLane(lane.id)
-                                            addMode = .appendRight
-                                            targetLaneID = lane.id
-                                            showSongPickerSheet = true
-                                        }
-                                    )
-                                    .padding(.leading, 12)
-                                }
-
-                                Button {
-                                    addMode = .firstOrNewLane
-                                    targetLaneID = nil
-                                    showSongPickerSheet = true
-                                } label: {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: "plus.circle.fill")
-                                        Text("Yeni Satır (Lane) Ekle")
+                            ZStack(alignment: .topLeading) {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    
+                                    ForEach(vm.lanes) { lane in
+                                        LaneRowView(
+                                            lane: lane,
+                                            sources: vm.sources,
+                                            pxPerSec: pxPerSec,
+                                            isSelected: vm.selectedLaneID == lane.id,
+                                            timelineWidth: timelineWidth,
+                                            onMoveItem: { itemID, newStart in
+                                                vm.moveItem(laneID: lane.id, itemID: itemID, newTimelineStart: newStart)
+                                            },
+                                            onTapItem: { item in
+                                                vm.beginEdit(laneID: lane.id, item: item)
+                                            },
+                                            onTapLane: {
+                                                vm.selectLane(lane.id)
+                                            },
+                                            onTapAppendRight: {
+                                                vm.selectLane(lane.id)
+                                                addMode = .appendRight
+                                                targetLaneID = lane.id
+                                                showSongPickerSheet = true
+                                            },
+                                            onDeleteItem: { laneID, itemID in
+                                                vm.removeItem(laneID: laneID, itemID: itemID)
+                                            }
+                                        )
+                                        .padding(.leading, 12)
+                                        //.padding(.bottom, 12)
                                     }
-                                    .font(.subheadline)
-                                    .padding(.vertical, 10)
-                                    .padding(.horizontal, 12)
-                                    .background(Color.white.opacity(0.07))
-                                    .cornerRadius(12)
+                                    
+                                    
+                                    Button {
+                                        addMode = .firstOrNewLane
+                                        targetLaneID = nil
+                                        showSongPickerSheet = true
+                                    } label: {
+                                        HStack(spacing: 8) {
+                                            Image(systemName: "plus.circle.fill")
+                                                .foregroundStyle(Color.white)
+                                            Text("Yeni Satır (Lane) Ekle")
+                                                .foregroundStyle(Color.white)
+                                        }
+                                        .font(.subheadline)
+                                        .padding(.vertical, 10)
+                                        .padding(.horizontal, 12)
+                                        .background(Color.accentColor.opacity(0.5))
+                                        .cornerRadius(12)
+                                    }
+                                    .padding(.vertical, 8)
+                                    .padding(.horizontal, 8)
+                                    .simultaneousGesture(DragGesture(minimumDistance: 0))
+                                    .buttonStyle(PressableStyle())
+
+                                    
                                 }
-                                .padding(.leading, 12)
-                                .padding(.top, 6)
+                                .frame(width: timelineWidth, alignment: .leading)
+                                .background(
+                                    GeometryReader { geo in
+                                        Color.clear
+                                            .onAppear { vm.timelineHeight = geo.size.height }
+                                            .onChange(of: geo.size.height) { _, newH in
+                                                vm.timelineHeight = newH
+                                            }
+                                    }
+                                )
+                                
+                                
+                                
+                                PlayheadView(x: CGFloat(vm.playHeadSec) * pxPerSec + 12, height: vm.timelineHeight - 50)
+                                
                             }
-                            .frame(width: timelineWidth, alignment: .leading)
+                            
                         }
                     }
                     .frame(width: timelineWidth + 40, alignment: .topLeading)
+                    
                 }
 
                 Spacer(minLength: 8)
 
                 // Bottom bar
                 HStack {
-                    Button("Şarkı Ekle") {
+                    Button{
                         addMode = .firstOrNewLane
                         targetLaneID = nil
                         showSongPickerSheet = true
+                    } label: {
+                        Text("Şarkı ekle")
+                            .foregroundStyle(Color.white)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 8)
+                            .frame(maxWidth: 100, maxHeight: 40, alignment: .center)
+                            .background(Color.accentColor.opacity(0.5))
+                            .cornerRadius(12)
                     }
 
                     Spacer()
 
                     Button(vm.isPlaying ? "Stop" : "Play") {
-                        vm.togglePlay()
+                        
+                        if vm.isPlaying {
+                            vm.stopPlayBack()
+                            
+                            
+                        } else {
+                            vm.startPlayBack()
+                        }
                     }
                     .buttonStyle(.borderedProminent)
 
                     Spacer()
                     
-                    Button("Kaydet") {
+                    Button {
                         Task {
                             if let url = await vm.exportMix() {
                                 print("kaydedildi.", url)
                             }
                         }
+                    } label: {
+                         Text("Kaydet")
+                            .foregroundStyle(Color.white)
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 12)
+                            .frame(maxWidth: 100, maxHeight: 40, alignment: .center)
+                            .background(Color.accentColor.opacity(0.5))
+                            .cornerRadius(12)
                     }
                     Spacer()
                     if vm.isLoading { ProgressView() }

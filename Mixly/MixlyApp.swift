@@ -9,9 +9,15 @@ import SwiftUI
 
 @main
 struct MixlyApp: App {
+    
+    init() {
+        TabBarStyle.setupTabBar()
+    }
+    
     var body: some Scene {
         WindowGroup {
-            HomeView()
+            MainTabView()
+                //.environmentObject(ThemeManager())
         }
     }
 }

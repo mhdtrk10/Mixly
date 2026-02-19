@@ -14,11 +14,11 @@ struct NavigationBarStyle {
         appearance.backgroundColor = UIColor(AppColors.Navbar)
         
         appearance.titleTextAttributes = [
-            .foregroundColor: UIColor(Color.black),
+            .foregroundColor: UIColor(Color.white),
             
         ]
         appearance.largeTitleTextAttributes = [
-            .foregroundColor: UIColor(Color.black),
+            .foregroundColor: UIColor(Color.white),
             
         ]
         

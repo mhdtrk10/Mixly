@@ -22,7 +22,17 @@ final class LaneEditorViewModel: ObservableObject {
 
     // Edit range sheet (lane item tıklanınca)
     @Published var editingItem: EditingItem? = nil
+    
+    @Published var playHeadSec: Double = 0
+    
+    private var playHeadTimer: DispatchSourceTimer?
+    private var playStartTime: Double = 0
+    
     private let exporter = MultiLaneAudioExporter()
+    
+    
+    @Published var timelineHeight: CGFloat = 0
+    
     struct EditingItem: Identifiable {
         let id = UUID()
         let laneID: UUID
@@ -37,6 +47,11 @@ final class LaneEditorViewModel: ObservableObject {
 
     // Playback engine (senin MultiLaneAudioEngine’in)
     private let playbackEngine = MultiLaneAudioEngine()
+    
+    private let engine = MultiLaneAudioEngine()
+    
+    
+    
 
     // MARK: - Source creation
 
@@ -99,7 +114,7 @@ final class LaneEditorViewModel: ObservableObject {
         lane.items.append(item)
         lanes.append(lane)
         selectedLaneID = lane.id
-
+        resetPlayHead()
         print("✅ addToNewLane CUSTOM:", sourceID, "t=\(timelineStartSec)", "src=\(safeStart)", "len=\(safeLen)")
     }
 
@@ -123,7 +138,7 @@ final class LaneEditorViewModel: ObservableObject {
 
         lanes[laneIndex].items.append(item)
         selectedLaneID = laneID
-
+        resetPlayHead()
         print("✅ addToRight CUSTOM:", sourceID, "t=\(tStart)", "src=\(safeStart)", "len=\(safeLen)")
     }
 
@@ -134,6 +149,7 @@ final class LaneEditorViewModel: ObservableObject {
         guard let itemIndex = lanes[laneIndex].items.firstIndex(where: { $0.id == itemID }) else { return }
 
         lanes[laneIndex].items[itemIndex].timelineStartSec = max(0, newTimelineStart)
+        resetPlayHead()
     }
 
     // MARK: - Update source range (edit)
@@ -147,6 +163,7 @@ final class LaneEditorViewModel: ObservableObject {
             startSec: item.sourceStartSec,
             endSec: end
         )
+        
     }
 
     func updateItem(laneID: UUID, itemID: UUID, start: Double, end: Double) {
@@ -160,6 +177,8 @@ final class LaneEditorViewModel: ObservableObject {
 
         lanes[laneIndex].items[itemIndex].sourceStartSec = s
         lanes[laneIndex].items[itemIndex].lengthSec = len
+    
+        resetPlayHead()
     }
 
     // MARK: - Selection
@@ -211,6 +230,7 @@ final class LaneEditorViewModel: ObservableObject {
 
     deinit {
         accessedURLs.forEach { $0.stopAccessingSecurityScopedResource() }
+        playHeadTimer?.cancel()
     }
     func exportMix() async -> URL? {
         let fileName = "Mixly-\(UUID().uuidString).caf"
@@ -228,5 +248,91 @@ final class LaneEditorViewModel: ObservableObject {
             return nil
         }
     }
+    
+    func removeItem(laneID: UUID, itemID: UUID) {
+        guard let laneIndex = lanes.firstIndex(where: { $0.id == laneID}) else { return }
+        lanes[laneIndex].items.removeAll { $0.id == itemID }
+        
+        if lanes[laneIndex].items.isEmpty {
+            lanes.remove(at: laneIndex)
+            if selectedLaneID == laneID {
+                selectedLaneID = lanes.first?.id
+            }
+        }
+        
+    }
+    
+    func startPlayHead(from sec: Double = 0) {
+        playHeadSec = sec
+        playStartTime = CACurrentMediaTime() - sec
+        stopPlayHead()
+        
+        let endSec = mixDurationSec()
+        
+        let t = DispatchSource.makeTimerSource(queue: .main)
+        t.schedule(deadline: .now(), repeating: 1.0 / 30.0)
+        t.setEventHandler { [weak self] in
+            guard let self else { return }
+            guard self.isPlaying else { return }
+            
+            let now = CACurrentMediaTime()
+            let current = max(0, now - self.playStartTime)
+            
+            self.playHeadSec = current
+            
+            if endSec > 0, current >= endSec {
+                self.stopPlayBack()
+                self.playHeadSec = endSec
+            }
+        }
+        t.resume()
+        playHeadTimer = t
+        
+    }
+    
+    func stopPlayHead() {
+        playHeadTimer?.cancel()
+        playHeadTimer = nil
+    }
+    func stopPlayBackUI() {
+        isPlaying = false
+        stopPlayHead()
+    }
+    
+    func startPlayBack() {
+        guard !isPlaying else { return }
+        
+        do {
+            try engine.play(lanes: lanes, sources: sources, startAtSec: playHeadSec)
+        } catch {
+            print("play error:", error)
+            return
+        }
+        isPlaying = true
+        startPlayHead(from: playHeadSec)
+    }
+    func stopPlayBack() {
+        guard isPlaying else { return }
+        
+        engine.stop()
+        isPlaying = false
+        stopPlayHead()
+    }
+    func mixDurationSec() -> Double {
+        let maxEnd = lanes
+            .flatMap { $0.items }
+            .map { $0.timelineEndSec }
+            .max() ?? 0
+        return max(0, maxEnd)
+    }
+    func resetPlayHead() {
+        if isPlaying {
+            engine.stop()
+            isPlaying = false
+            stopPlayHead()
+        }
+        playHeadSec = 0
+    }
+    
 }
 

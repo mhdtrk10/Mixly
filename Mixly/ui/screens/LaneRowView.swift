@@ -26,14 +26,16 @@ struct LaneRowView: View {
     private var maxLaneEndSec: Double {
         lane.items.map { $0.timelineEndSec }.max() ?? 0
     }
-
+    
+    let onDeleteItem: (UUID, UUID) -> Void
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
 
             ZStack(alignment: .leading) {
 
                 RoundedRectangle(cornerRadius: 14)
-                    .fill(isSelected ? Color.white.opacity(0.08) : Color.white.opacity(0.04))
+                    .fill(isSelected ? Color.blue.opacity(0.4) : Color.white.opacity(0.4))
                     .frame(width: timelineWidth, height: laneHeight)
 
                 // Klipler timeline'a göre konumlanır
@@ -46,6 +48,9 @@ struct LaneRowView: View {
                             height: laneHeight,
                             onMove: { newStart in
                                 onMoveItem(item.id, newStart)
+                            },
+                            onDelete: {
+                                onDeleteItem(lane.id, item.id)
                             }
                         )
                         .onTapGesture {
@@ -64,13 +69,21 @@ struct LaneRowView: View {
                 Button {
                     onTapAppendRight()
                 } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.title3)
-                        .foregroundColor(.black)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 8)
-                        .background(Color.white.opacity(0.75))
-                        .clipShape(Capsule())
+                    
+                    ZStack {
+                        Circle()
+                            .fill(Color.accentColor)
+                            .frame(width: 44, height: 44)
+                            .overlay {
+                                Circle()
+                                    .stroke(Color.blue, lineWidth: 1)
+                            }
+                            .shadow(color: Color.black.opacity(0.4), radius: 5, x: 0, y: 3)
+                        Image(systemName: "plus")
+                            .foregroundStyle(Color.white)
+                            .font(Font.system(size: 24))
+                    }
+                    
                 }
                 .offset(x: CGFloat(maxLaneEndSec) * pxPerSec + 12)
             }
@@ -90,32 +103,55 @@ struct LaneItemBlockView: View {
     let pxPerSec: CGFloat
     let height: CGFloat
     let onMove: (Double) -> Void
-
+    let onDelete: () -> Void
     @State private var baseTimelineStart: Double = 0
 
     var body: some View {
         let width = max(CGFloat(item.lengthSec) * pxPerSec, 40)
         let x = CGFloat(item.timelineStartSec) * pxPerSec
 
-        ZStack(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.blue.opacity(0.45))
+        ZStack(alignment: .topTrailing) {
+            
+            ZStack(alignment: .center) {
+                
 
-            if !source.waveform.isEmpty {
-                WaveformView(samples: source.waveform)
-                    .padding(.vertical, 10)
-                    .clipped()
+                if !source.waveform.isEmpty {
+                    WaveformView(samples: source.waveform, style: .lane)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 8)
+                        .clipped()
+                }
+
+
+                // küçük isim etiketi
+                Text(source.url.lastPathComponent)
+                    .font(.caption2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.black.opacity(0.9))
+                    .lineLimit(1)
+                    .padding(.horizontal, 8)
+                    .padding(.top, 6)
             }
-
-            // küçük isim etiketi
-            Text(source.url.lastPathComponent)
-                .font(.caption2)
-                .foregroundColor(.white.opacity(0.9))
-                .lineLimit(1)
-                .padding(.horizontal, 8)
-                .padding(.top, 6)
+                        
+            Button {
+                onDelete()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.white.opacity(0.95))
+                    .padding(6)
+                    .background(Color.black.opacity(0.55))
+                    .clipShape(Circle())
+            }
+            
         }
         .frame(width: width, height: height)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.black, lineWidth: 1)
+        )
+        .background(Color.accentColor)
+        .cornerRadius(10)
         .offset(x: x)
         .onAppear { baseTimelineStart = item.timelineStartSec }
         .gesture(
@@ -129,10 +165,11 @@ struct LaneItemBlockView: View {
                     baseTimelineStart = item.timelineStartSec
                 }
         )
+
     }
 }
 
-
+/*
 private struct LaneItemFallbackView: View {
     let item: LaneItem
     let pxPerSec: CGFloat
@@ -153,5 +190,5 @@ private struct LaneItemFallbackView: View {
             .offset(x: x)
     }
 }
-
+*/
 

@@ -8,10 +8,27 @@
 import SwiftUI
 
 struct HomeView: View {
+    
+    @EnvironmentObject private var themeManager: ThemeManager
+    
+    init () {
+        NavigationBarStyle.setupNavigationBar()
+    }
+    
     var body: some View {
         NavigationStack {
             ZStack {
-                AppColors.Background.edgesIgnoringSafeArea(.all)
+                /*
+                LinearGradient(
+                    colors: [.purple.opacity(0.8),.blue.opacity(0.8)],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+                .ignoresSafeArea()
+                */
+                
+                themeManager.theme.background
+                    .ignoresSafeArea()
                 
                 VStack {
                     VStack(spacing: 4) {

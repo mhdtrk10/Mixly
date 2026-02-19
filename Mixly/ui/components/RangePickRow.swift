@@ -24,16 +24,20 @@ struct RangePickRow: View {
         let endX   = CGFloat(endSec) * pxPerSec
 
         ZStack(alignment: .leading) {
+            
+            
+            
             RoundedRectangle(cornerRadius: 10)
                 .fill(Color.black.opacity(0.18))
                 .frame(width: totalWidth, height: height)
 
             if !waveform.isEmpty {
-                WaveformView(samples: waveform)
-                    .frame(width: totalWidth, height: height)
-                    .padding(.vertical, 8) // waveform küçültme
-                    .clipped()
+                WaveformView(samples: waveform, style: .picker)
+                .frame(width: totalWidth, height: height)
+                .padding(.vertical, 8)
+                .clipped()
             }
+
 
             // Sol karartma
             if startX > 0 {
