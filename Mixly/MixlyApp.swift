@@ -6,18 +6,26 @@
 //
 
 import SwiftUI
+import GoogleMobileAds
 
 @main
 struct MixlyApp: App {
     
+    @StateObject private var themeManager = ThemeManager()
+    @StateObject private var adManager = AdManager()
+    
     init() {
         TabBarStyle.setupTabBar()
+        MobileAds.shared.requestConfiguration.testDeviceIdentifiers = ["SIMULATOR"]
+        MobileAds.shared.start()
+        
     }
     
     var body: some Scene {
         WindowGroup {
             MainTabView()
-                //.environmentObject(ThemeManager())
+                .environmentObject(themeManager)
+                .environmentObject(adManager)
         }
     }
 }

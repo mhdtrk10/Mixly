@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import GoogleMobileAds
 
 struct MainTabView: View {
     @StateObject private var themeManager = ThemeManager()
@@ -17,21 +18,25 @@ struct MainTabView: View {
         TabView(selection: $selectedTab) {
             HomeView()
                 .tabItem { Label("Home", systemImage: "house.fill") }
-
+            
             NavigationStack {
                 LaneEditorView()
             }
             .tag(1)
             .tabItem { Label("Mix", systemImage: "waveform") }
-
+            
             SettingsView()
                 .tag(2)
                 .tabItem { Label("Ayarlar", systemImage: "gearshape.fill") }
         }
-        .environmentObject(themeManager) // ✅ tüm uygulamada tema
+        .environmentObject(themeManager)
+        //.tint(Color.white)
         
     }
+    
+    
 }
+
 
 
 #Preview {

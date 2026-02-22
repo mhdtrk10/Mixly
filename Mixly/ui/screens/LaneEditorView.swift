@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import GoogleMobileAds
 
 struct LaneEditorView: View {
     @StateObject private var vm = LaneEditorViewModel()
@@ -34,8 +35,10 @@ struct LaneEditorView: View {
     
     @EnvironmentObject private var themeManager: ThemeManager
     
-
+    @EnvironmentObject var AdManager: AdManager
+    //adManager.registerExportAndMaybeShowAd()
     
+    @State private var showSaved = false
     
     var body: some View {
         ZStack {
@@ -45,6 +48,8 @@ struct LaneEditorView: View {
                 .ignoresSafeArea()
             
             VStack(spacing: 12) {
+                
+                BannerTopBar()
 
                 ScrollView(.horizontal, showsIndicators: true) {
                     VStack(alignment: .leading, spacing: 12) {
@@ -194,6 +199,12 @@ struct LaneEditorView: View {
                         Task {
                             if let url = await vm.exportMix() {
                                 print("kaydedildi.", url)
+                                
+                                showSaved = true
+                                
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                                    AdManager.showInterstitialIfReady()
+                                }
                             }
                         }
                     } label: {
@@ -213,9 +224,13 @@ struct LaneEditorView: View {
         }
         .navigationTitle("Mixly")
         .navigationBarTitleDisplayMode(.inline)
-
+        .alert("Kaydedildi!", isPresented: $showSaved) {
+            Button("Tamam", role: .cancel) {}
+        }
+        .onAppear {
+            AdManager.loadInterstitial()
+        }
         // MARK: - Sheets
-
         .sheet(isPresented: $showSongPickerSheet) {
             SongPickSheet(
                 demoSongs: demoSongs,
@@ -294,7 +309,22 @@ struct LaneEditorView: View {
         }
     }
 }
+struct BannerTopBar: View {
 
+    // Google Test Banner ID
+    private let bannerID = "ca-app-pub-3940256099942544/2435281174"
+
+    var body: some View {
+
+        let width = UIScreen.main.bounds.width
+        let size = largePortraitAnchoredAdaptiveBanner(width: width)
+
+        AdBannerView(adUnitID: bannerID, adSize: size)
+            .frame(width: size.size.width, height: 40)
+            .frame(maxWidth: .infinity)
+            
+    }
+}
 
 
 #Preview {

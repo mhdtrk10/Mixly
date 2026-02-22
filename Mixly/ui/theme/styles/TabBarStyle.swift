@@ -16,7 +16,7 @@ struct TabBarStyle {
 
         // NORMAL (seçili olmayan)
         let normalIcon = UIColor.yellow
-        let normalText = UIColor.red
+        let normalText = UIColor.gray
 
         // SELECTED (seçili)
         let selectedIcon = UIColor.systemTeal
