@@ -35,10 +35,10 @@ struct LaneEditorView: View {
     
     @EnvironmentObject private var themeManager: ThemeManager
     
-    @EnvironmentObject var AdManager: AdManager
-    //adManager.registerExportAndMaybeShowAd()
-    
+    @EnvironmentObject var adManager: AdManager
     @State private var showSaved = false
+    @State private var waitingAdToClose = false
+    @State private var lastDismissCount = 0
     
     var body: some View {
         ZStack {
@@ -196,14 +196,20 @@ struct LaneEditorView: View {
                     Spacer()
                     
                     Button {
-                        Task {
+                        Task { @MainActor in
                             if let url = await vm.exportMix() {
-                                print("kaydedildi.", url)
+                                print("✅ kaydedildi:", url)
                                 
-                                showSaved = true
+                                // 1) Reklamı göster
+                                waitingAdToClose = true
+                                lastDismissCount = adManager.interstitialDismissCount
                                 
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                                    AdManager.showInterstitialIfReady()
+                                let shown = adManager.showInterstitialIfReady()
+                                
+                                // 2) Reklam hazır değilse direkt bildir
+                                if !shown {
+                                    waitingAdToClose = false
+                                    showSaved = true
                                 }
                             }
                         }
@@ -216,6 +222,18 @@ struct LaneEditorView: View {
                             .background(Color.accentColor.opacity(0.5))
                             .cornerRadius(12)
                     }
+                    .alert("Kaydedildi", isPresented: $showSaved) {
+                        Button("Tamam", role: .cancel) {}
+                    }
+                    .onChange(of: adManager.interstitialDismissCount) { oldValue, newValue in
+                        // ✅ reklam kapandıysa ve biz bekliyorsak -> şimdi bildir
+                        guard waitingAdToClose else { return }
+                        guard newValue > lastDismissCount else { return }
+                        
+                        waitingAdToClose = false
+                        showSaved = true
+                    }
+                    
                     Spacer()
                     if vm.isLoading { ProgressView() }
                 }
@@ -224,11 +242,8 @@ struct LaneEditorView: View {
         }
         .navigationTitle("Mixly")
         .navigationBarTitleDisplayMode(.inline)
-        .alert("Kaydedildi!", isPresented: $showSaved) {
-            Button("Tamam", role: .cancel) {}
-        }
         .onAppear {
-            AdManager.loadInterstitial()
+            adManager.loadInterstitial()
         }
         // MARK: - Sheets
         .sheet(isPresented: $showSongPickerSheet) {

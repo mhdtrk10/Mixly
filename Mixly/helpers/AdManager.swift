@@ -16,7 +16,7 @@ final class AdManager: NSObject, ObservableObject {
     @AppStorage("mixly.exportCount") private var exportCount: Int = 0
     private let showEvery: Int = 10
     private let secondAdEvery: Int = 3
-    
+    @Published var interstitialDismissCount: Int = 0
 
     // ✅ TEST Interstitial Ad Unit ID
     private let interstitialUnitID = "ca-app-pub-2214588741197172/4465605294"
@@ -42,18 +42,15 @@ final class AdManager: NSObject, ObservableObject {
         }
     }
 
-    func showInterstitialIfReady() {
+    func showInterstitialIfReady() -> Bool {
         // Export completion bazen background'tan gelebilir; garantiye alalım
-        Task { @MainActor in
-            guard let topVC = self.topVC() else { return }
-
-            guard let interstitial = self.interstitial else {
-                print("⚠️ interstitial not ready")
-                return
-            }
-
-            interstitial.present(from: topVC)
+        guard let topVC = self.topVC() else { return false }
+        guard let interstitial = self.interstitial else {
+            print("⚠️ interstitial not ready")
+            return false
         }
+        interstitial.present(from: topVC)
+        return true
     }
 
     private func topVC() -> UIViewController? {
@@ -95,6 +92,8 @@ extension AdManager: FullScreenContentDelegate {
             guard let self else { return }
             self.interstitial = nil
             self.loadInterstitial()
+            
+            self.interstitialDismissCount += 1
         }
     }
 
@@ -105,6 +104,8 @@ extension AdManager: FullScreenContentDelegate {
             print("❌ interstitial present error:", error.localizedDescription)
             self.interstitial = nil
             self.loadInterstitial()
+            
+            self.interstitialDismissCount += 1
         }
     }
 }
