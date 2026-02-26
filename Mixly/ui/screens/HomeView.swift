@@ -84,12 +84,14 @@ struct HomeView: View {
                                 .cornerRadius(12)
                         }
                         
-                        Button {
+                        NavigationLink {
                             // TODO: son mixler ekranı
+                            RecentMixesView()
+                            
                         } label: {
                             HStack {
                                 Image(systemName: "clock.arrow.circlepath")
-                                Text("Yakında: Son Mixler")
+                                Text("Son Mixler")
                             }
                             .font(.headline)
                             .frame(maxWidth: .infinity)
@@ -98,7 +100,7 @@ struct HomeView: View {
                             .foregroundStyle(.black)
                             .cornerRadius(12)
                         }
-                        .disabled(true) // şimdilik pasif
+                        //.disabled(true) // şimdilik pasif
                     }
                     .padding(.horizontal, 24)
                     .padding(.bottom, 32)

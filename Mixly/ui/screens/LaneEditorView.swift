@@ -40,6 +40,11 @@ struct LaneEditorView: View {
     @State private var waitingAdToClose = false
     @State private var lastDismissCount = 0
     
+    @Environment(\.managedObjectContext) private var context
+    @State private var showNamePrompt = false
+    @State private var mixName: String = ""
+    @State private var isExporting = false
+    
     var body: some View {
         ZStack {
            
@@ -196,23 +201,9 @@ struct LaneEditorView: View {
                     Spacer()
                     
                     Button {
-                        Task { @MainActor in
-                            if let url = await vm.exportMix() {
-                                print("✅ kaydedildi:", url)
-                                
-                                // 1) Reklamı göster
-                                waitingAdToClose = true
-                                lastDismissCount = adManager.interstitialDismissCount
-                                
-                                let shown = adManager.showInterstitialIfReady()
-                                
-                                // 2) Reklam hazır değilse direkt bildir
-                                if !shown {
-                                    waitingAdToClose = false
-                                    showSaved = true
-                                }
-                            }
-                        }
+                        mixName = ""
+                        showNamePrompt = true
+                        
                     } label: {
                          Text("Kaydet")
                             .foregroundStyle(Color.white)
@@ -222,7 +213,23 @@ struct LaneEditorView: View {
                             .background(Color.accentColor.opacity(0.5))
                             .cornerRadius(12)
                     }
-                    .alert("Kaydedildi", isPresented: $showSaved) {
+                    .disabled(isExporting || vm.lanes.isEmpty)
+                    .alert("Mix Adı: ", isPresented: $showNamePrompt) {
+                        TextField("Örn:  BestMix", text: $mixName)
+                        
+                        Button("Vazgeç", role: .cancel) { }
+                        
+                        Button("Kaydet") {
+                            showNamePrompt = false
+                            Task {@MainActor in
+                                
+                                await exportAndSaveWithName()
+                            }
+                        }
+                    } message: {
+                        Text("Kaydederken listede bu isim gözükecek.")
+                    }
+                    .alert("Kaydedildi!", isPresented: $showSaved) {
                         Button("Tamam", role: .cancel) {}
                     }
                     .onChange(of: adManager.interstitialDismissCount) { oldValue, newValue in
@@ -321,6 +328,41 @@ struct LaneEditorView: View {
                     }
                 )
             }
+        }
+    }
+    @MainActor
+    private func exportAndSaveWithName() async {
+        guard !isExporting else { return }
+        isExporting = true
+        defer { isExporting = false }
+
+        let trimmed = mixName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalTitle = trimmed.isEmpty
+            ? "Mix \(Date.now.formatted(date: .numeric, time: .shortened))"
+            : trimmed
+
+        guard let url = await vm.exportMix() else { return }
+
+        // ✅ 1) Kaydet
+        let store = MixStore(context: context)
+        store.saveMix(
+            fromExportURL: url,
+            title: finalTitle,
+            durationSec: 0,
+            lanesCount: vm.lanes.count,
+            ext: "m4a"
+        )
+
+        // ✅ 2) Reklamı göster
+        waitingAdToClose = true
+        lastDismissCount = adManager.interstitialDismissCount
+
+        let shown = adManager.showInterstitialIfReady()
+
+        // ✅ 3) Reklam yoksa direkt bildir
+        if !shown {
+            waitingAdToClose = false
+            showSaved = true   // veya presentToast("Kaydedildi ✅")
         }
     }
 }

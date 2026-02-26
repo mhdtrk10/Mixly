@@ -7,13 +7,14 @@
 
 import SwiftUI
 import GoogleMobileAds
+import CoreData
 
 @main
 struct MixlyApp: App {
     
     @StateObject private var themeManager = ThemeManager()
     @StateObject private var adManager = AdManager()
-    
+    let persistence = PersistenceController.shared
     init() {
         TabBarStyle.setupTabBar()
         MobileAds.shared.requestConfiguration.testDeviceIdentifiers = ["SIMULATOR"]
@@ -26,6 +27,7 @@ struct MixlyApp: App {
             MainTabView()
                 .environmentObject(themeManager)
                 .environmentObject(adManager)
+                .environment(\.managedObjectContext, persistence.container.viewContext)
         }
     }
 }
