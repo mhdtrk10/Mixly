@@ -197,7 +197,15 @@ struct LaneEditorView: View {
                         }
                     }
                     .buttonStyle(.borderedProminent)
-
+                    .disabled(vm.lanes.flatMap { $0.items }.isEmpty)
+                    Spacer()
+                    
+                    Button {
+                        vm.restartPlayback()
+                    } label: {
+                        Image(systemName: "gobackward")
+                    }
+                    
                     Spacer()
                     
                     Button {

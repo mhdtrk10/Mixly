@@ -152,7 +152,7 @@ final class MultiLaneAudioEngine {
 
     private func prepareSessionIfNeeded() throws {
         let s = AVAudioSession.sharedInstance()
-        try s.setCategory(.playback, mode: .default, options: [.mixWithOthers, .defaultToSpeaker])
+        try s.setCategory(.playback, mode: .default, options: [.mixWithOthers])
         try s.setActive(true)
     }
 

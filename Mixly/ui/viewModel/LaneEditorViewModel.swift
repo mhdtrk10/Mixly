@@ -50,7 +50,12 @@ final class LaneEditorViewModel: ObservableObject {
     
     private let engine = MultiLaneAudioEngine()
     
-    
+    var mixTotalDurationSec: Double {
+        lanes
+            .flatMap { $0.items }
+            .map { $0.timelineEndSec }
+            .max() ?? 0
+    }
     
 
     // MARK: - Source creation
@@ -281,8 +286,11 @@ final class LaneEditorViewModel: ObservableObject {
             self.playHeadSec = current
             
             if endSec > 0, current >= endSec {
-                self.stopPlayBack()
+                // önce playhead'i sona sabitle
                 self.playHeadSec = endSec
+                
+                // sonra stop (engine + timer + isPlaying false)
+                self.stopPlayBackUIOnly()
             }
         }
         t.resume()
@@ -294,22 +302,27 @@ final class LaneEditorViewModel: ObservableObject {
         playHeadTimer?.cancel()
         playHeadTimer = nil
     }
-    func stopPlayBackUI() {
+    func stopPlayBackUIOnly() {
+        engine.stop()
         isPlaying = false
         stopPlayHead()
     }
     
     func startPlayBack() {
-        guard !isPlaying else { return }
-        
+
+        let end = mixTotalDurationSec
+        if end > 0, playHeadSec >= end {
+            playHeadSec = 0
+        }
+
         do {
-            try engine.play(lanes: lanes, sources: sources, startAtSec: playHeadSec)
+            try engine.play(lanes: lanes, sources: sources, startAtSec: playHeadSec, leadInSec: 0.5)
+            isPlaying = true
+            startPlayHead(from: playHeadSec)
         } catch {
             print("play error:", error)
-            return
+            stopPlayBack()
         }
-        isPlaying = true
-        startPlayHead(from: playHeadSec)
     }
     func stopPlayBack() {
         guard isPlaying else { return }
@@ -317,6 +330,7 @@ final class LaneEditorViewModel: ObservableObject {
         engine.stop()
         isPlaying = false
         stopPlayHead()
+        //playHeadSec = 0
     }
     func mixDurationSec() -> Double {
         let maxEnd = lanes
@@ -332,6 +346,18 @@ final class LaneEditorViewModel: ObservableObject {
             stopPlayHead()
         }
         playHeadSec = 0
+    }
+    func restartPlayback() {
+        // önce durdur
+        engine.stop()
+        isPlaying = false
+        stopPlayHead()
+        
+        // başa sar
+        playHeadSec = 0
+        
+        // istersen otomatik başlat:
+        startPlayBack()
     }
     
 }
