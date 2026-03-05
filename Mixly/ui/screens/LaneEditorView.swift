@@ -356,7 +356,7 @@ struct LaneEditorView: View {
         store.saveMix(
             fromExportURL: url,
             title: finalTitle,
-            durationSec: 0,
+            durationSec: vm.mixTotalDurationSec,
             lanesCount: vm.lanes.count,
             ext: "m4a"
         )

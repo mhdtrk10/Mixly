@@ -7,7 +7,7 @@
 
 import SwiftUI
 import CoreData
-
+import AVFoundation
 struct RecentMixesView: View {
 
     @Environment(\.managedObjectContext) private var context
@@ -18,8 +18,12 @@ struct RecentMixesView: View {
     )
     private var mixes: FetchedResults<MixExport>
 
-    @StateObject private var playback = MixPlaybackManager()   // ✅
-
+    @EnvironmentObject var playback: MixPlaybackManager
+    
+    
+    
+    
+    
     var body: some View {
         List {
             if mixes.isEmpty {
@@ -27,26 +31,83 @@ struct RecentMixesView: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(mixes) { m in
-                    mixRow(m)
-                        .contentShape(Rectangle()) // ✅ boş alana tıklamayı da yakala
-                        .onTapGesture {
-                            guard
-                                let id = m.id,
-                                let fileName = m.fileName
-                            else { return }
+                    let isThisPlaying = (playback.currentMixID == m.id && playback.isPlaying)
+                    
+                    /*
+                     mixRow(m)
+                         .contentShape(Rectangle()) // ✅ boş alana tıklamayı da yakala
+                         .onTapGesture {
+                             guard
+                                 let id = m.id,
+                                 let fileName = m.fileName
+                             else { return }
 
-                            playback.togglePlay(mixID: id, fileName: fileName)
+                             playback.togglePlay(mixID: id, fileName: fileName)
+                         }
+                     */
+                    
+                    ZStack {
+                        NavigationLink {
+                            MixDetailView(mix: m)
+                        } label: {
+                            //MixCardView(mix: m, onPlay: {togglePreview(m)}, isPlaying: playingMixID == m.id && isPlaying)
+                            EmptyView()
                         }
+                        .opacity(0)
+                        
+                        MixCardView(
+                            mix: m,
+                            onPlay: {
+                                guard let id = m.id else { return }
+                                guard let fileName = m.fileName else { return }
+                                playback.togglePlay(mixID: id , fileName: fileName)
+                            },
+                            isPlaying: isThisPlaying)
+                        
+                    }
+                    
                 }
                 .onDelete(perform: delete)
             }
         }
         .navigationTitle("Son Mixler")
-        .onDisappear {
-            playback.stop() // ✅ ekrandan çıkınca çalmayı kes
+        
+    }
+    /*
+    private func togglePreview(_ mix: MixExport) {
+
+        guard let fileName = mix.fileName else { return }
+
+        let docs = FileManager.default.urls(
+            for: .documentDirectory,
+            in: .userDomainMask
+        ).first!
+
+        let url = docs.appendingPathComponent(fileName)
+
+        // aynı mix çalıyorsa pause
+        if playingMixID == mix.id, isPlaying {
+            player?.pause()
+            isPlaying = false
+            return
+        }
+
+        // başka mix seçildiyse yeniden başlat
+        do {
+            player?.stop()
+            player = try AVAudioPlayer(contentsOf: url)
+            player?.prepareToPlay()
+            player?.play()
+
+            playingMixID = mix.id
+            isPlaying = true
+
+        } catch {
+            print("preview play error:", error)
         }
     }
-
+     */
+    /*
     @ViewBuilder
     private func mixRow(_ m: MixExport) -> some View {
         let id = m.id
@@ -77,10 +138,10 @@ struct RecentMixesView: View {
         }
         .padding(.vertical, 6)
     }
-
+     */
     private func delete(_ indexSet: IndexSet) {
         let store = MixStore(context: context)
         indexSet.map { mixes[$0] }.forEach { store.deleteMix($0) }
-        playback.stop()
+        playback.stopAndReset()
     }
 }

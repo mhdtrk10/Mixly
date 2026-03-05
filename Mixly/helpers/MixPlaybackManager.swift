@@ -12,41 +12,52 @@ import Combine
 @MainActor
 final class MixPlaybackManager: ObservableObject {
 
-    @Published var playingMixID: UUID?
+    @Published var currentMixID: UUID?
     @Published var isPlaying: Bool = false
 
     private var player: AVAudioPlayer?
 
     func togglePlay(mixID: UUID, fileName: String) {
+        print("tap:", mixID, "current:", currentMixID as Any, "isPlaying:", isPlaying)
         // Aynı mix çalıyorsa durdur
-        if playingMixID == mixID, isPlaying {
-            stop()
+        if currentMixID == mixID, isPlaying {
+            player?.pause()
+            isPlaying = false
             return
         }
 
-        // Başka mix çalıyorsa onu durdur, yenisini başlat
-        stop()
-
+        // aynı mix ama paused ise devam
+        if currentMixID == mixID, !isPlaying {
+            player?.play()
+            isPlaying = true
+            return
+        }
+        
         do {
+            
+            player?.stop()
+            player = nil
+            
             let url = try MixLibrary.urlFor(fileName: fileName)
+            
             let p = try AVAudioPlayer(contentsOf: url)
             p.prepareToPlay()
             p.play()
-
+            
             player = p
-            playingMixID = mixID
+            currentMixID = mixID
             isPlaying = true
 
         } catch {
             print("❌ Mix play error:", error.localizedDescription)
-            stop()
+            stopAndReset()
         }
     }
 
-    func stop() {
+    func stopAndReset() {
         player?.stop()
         player = nil
         isPlaying = false
-        playingMixID = nil
+        currentMixID = nil
     }
 }

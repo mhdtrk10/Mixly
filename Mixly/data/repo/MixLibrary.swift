@@ -49,4 +49,29 @@ enum MixLibrary {
             print("❌ delete file error:", error.localizedDescription)
         }
     }
+    static func libraryFolderURL() -> URL {
+        
+        let fm = FileManager.default
+        
+        let base = fm.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        ).first!
+        
+        let folder = base.appendingPathComponent("Mixly")
+        
+        if !fm.fileExists(atPath: folder.path) {
+            try? fm.createDirectory(
+                at: folder,
+                withIntermediateDirectories: true
+            )
+        }
+        
+        return folder
+    }
+    
+    static func urlForSavedMix(fileName: String) -> URL? {
+        let url = libraryFolderURL().appendingPathComponent(fileName)
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
 }
