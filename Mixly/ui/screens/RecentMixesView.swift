@@ -18,130 +18,87 @@ struct RecentMixesView: View {
     )
     private var mixes: FetchedResults<MixExport>
 
-    @EnvironmentObject var playback: MixPlaybackManager
+    @EnvironmentObject var mixPlaybackManager: MixPlaybackManager
+    @EnvironmentObject var themeManager: ThemeManager
     
-    
-    
-    
+    @State private var selectedMix: MixExport?
     
     var body: some View {
-        List {
+        
+        ZStack {
+            
+            themeManager.theme.background
+                .ignoresSafeArea()
+            
             if mixes.isEmpty {
                 Text("Henüz kayıt yok.")
                     .foregroundStyle(.secondary)
+                emptyState
             } else {
-                ForEach(mixes) { m in
-                    let isThisPlaying = (playback.currentMixID == m.id && playback.isPlaying)
-                    
-                    /*
-                     mixRow(m)
-                         .contentShape(Rectangle()) // ✅ boş alana tıklamayı da yakala
-                         .onTapGesture {
-                             guard
-                                 let id = m.id,
-                                 let fileName = m.fileName
-                             else { return }
-
-                             playback.togglePlay(mixID: id, fileName: fileName)
-                         }
-                     */
-                    
-                    ZStack {
-                        NavigationLink {
-                            MixDetailView(mix: m)
-                        } label: {
-                            //MixCardView(mix: m, onPlay: {togglePreview(m)}, isPlaying: playingMixID == m.id && isPlaying)
-                            EmptyView()
+                ScrollView(showsIndicators: false) {
+                    LazyVStack(spacing: 14) {
+                        ForEach(mixes) { mix in
+                            let isThisPlaying = (mixPlaybackManager.currentMixID == mix.id && mixPlaybackManager.isPlaying)
+                            
+                            MixCardView(
+                                mix: mix,
+                                onPlay: {
+                                    guard let id = mix.id, let fileName = mix.fileName else { return }
+                                    //print("▶️ recent mix play tapped")
+                                    mixPlaybackManager.togglePlay(mixID: id, fileName: fileName)
+                                },
+                                isPlaying: isThisPlaying
+                            )
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                selectedMix = mix
+                            }
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    delete(mix)
+                                } label: {
+                                    Label("Sil", systemImage: "trash")
+                                }
+                            }
                         }
-                        .opacity(0)
-                        
-                        MixCardView(
-                            mix: m,
-                            onPlay: {
-                                guard let id = m.id else { return }
-                                guard let fileName = m.fileName else { return }
-                                playback.togglePlay(mixID: id , fileName: fileName)
-                            },
-                            isPlaying: isThisPlaying)
-                        
                     }
-                    
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+                    .padding(.bottom, 24)
                 }
-                .onDelete(perform: delete)
+                .padding(.top, 8)
+                
             }
+            
         }
         .navigationTitle("Son Mixler")
+        .navigationDestination(item: $selectedMix) { mix in
+            MixDetailView(mix: mix)
+        }
         
     }
-    /*
-    private func togglePreview(_ mix: MixExport) {
-
-        guard let fileName = mix.fileName else { return }
-
-        let docs = FileManager.default.urls(
-            for: .documentDirectory,
-            in: .userDomainMask
-        ).first!
-
-        let url = docs.appendingPathComponent(fileName)
-
-        // aynı mix çalıyorsa pause
-        if playingMixID == mix.id, isPlaying {
-            player?.pause()
-            isPlaying = false
-            return
-        }
-
-        // başka mix seçildiyse yeniden başlat
-        do {
-            player?.stop()
-            player = try AVAudioPlayer(contentsOf: url)
-            player?.prepareToPlay()
-            player?.play()
-
-            playingMixID = mix.id
-            isPlaying = true
-
-        } catch {
-            print("preview play error:", error)
+    
+    private var emptyState: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "music.note.list")
+                .font(.system(size: 42))
+                .foregroundStyle(.white.opacity(0.75))
+            
+            Text("Henüz kayıt yok")
+                .font(.headline)
+                .foregroundStyle(.white)
+            
+            Text("İlk mixini oluşturup kaydettiğinde burada görünecek.")
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.72))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 28)
         }
     }
-     */
-    /*
-    @ViewBuilder
-    private func mixRow(_ m: MixExport) -> some View {
-        let id = m.id
-        let isThisPlaying = (id != nil && playback.playingMixID == id && playback.isPlaying)
-
-        HStack(spacing: 12) {
-            // ✅ Play icon
-            Image(systemName: isThisPlaying ? "pause.circle.fill" : "play.circle.fill")
-                .font(.system(size: 26))
-                .foregroundStyle(Color.accentColor)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(m.title ?? "Mix")
-                    .font(.headline)
-
-                HStack(spacing: 10) {
-                    if let d = m.createdAt {
-                        Text(d.formatted(date: .abbreviated, time: .shortened))
-                    }
-                    Text("Lane: \(m.lanesCount)")
-                    Text("\(Int(m.durationSec))s")
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-        }
-        .padding(.vertical, 6)
-    }
-     */
-    private func delete(_ indexSet: IndexSet) {
+    
+    private func delete(_ mix: MixExport) {
         let store = MixStore(context: context)
-        indexSet.map { mixes[$0] }.forEach { store.deleteMix($0) }
-        playback.stopAndReset()
+        store.deleteMix(mix)
+        mixPlaybackManager.stopAndReset()
     }
 }

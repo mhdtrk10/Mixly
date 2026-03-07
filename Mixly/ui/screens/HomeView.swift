@@ -96,8 +96,8 @@ struct HomeView: View {
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.white.opacity(0.1))
-                            .foregroundStyle(.black)
+                            .background(Color.accentColor.opacity(0.1))
+                            .foregroundStyle(.white)
                             .cornerRadius(12)
                         }
                         //.disabled(true) // şimdilik pasif

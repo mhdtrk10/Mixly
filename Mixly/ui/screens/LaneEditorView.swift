@@ -7,6 +7,7 @@
 
 import SwiftUI
 import GoogleMobileAds
+import UniformTypeIdentifiers
 
 struct LaneEditorView: View {
     @StateObject private var vm = LaneEditorViewModel()
@@ -44,6 +45,7 @@ struct LaneEditorView: View {
     @State private var showNamePrompt = false
     @State private var mixName: String = ""
     @State private var isExporting = false
+    @State private var showFilePicker = false
     
     var body: some View {
         ZStack {
@@ -173,7 +175,8 @@ struct LaneEditorView: View {
                     Button{
                         addMode = .firstOrNewLane
                         targetLaneID = nil
-                        showSongPickerSheet = true
+                        //showSongPickerSheet = true
+                        showFilePicker = true
                     } label: {
                         Text("Şarkı ekle")
                             .foregroundStyle(Color.white)
@@ -196,6 +199,7 @@ struct LaneEditorView: View {
                             vm.startPlayBack()
                         }
                     }
+                    
                     .buttonStyle(.borderedProminent)
                     .disabled(vm.lanes.flatMap { $0.items }.isEmpty)
                     Spacer()
@@ -204,8 +208,9 @@ struct LaneEditorView: View {
                         vm.restartPlayback()
                     } label: {
                         Image(systemName: "gobackward")
+                        
                     }
-                    
+                    .disabled(isExporting || vm.lanes.isEmpty)
                     Spacer()
                     
                     Button {
@@ -281,7 +286,6 @@ struct LaneEditorView: View {
                 onClose: { showSongPickerSheet = false }
             )
         }
-
         .sheet(isPresented: $showRangeSheet) {
             if let sid = pendingSourceID,
                let src = vm.sources.first(where: { $0.id == sid }) {
@@ -336,6 +340,24 @@ struct LaneEditorView: View {
                     }
                 )
             }
+        }
+        .fileImporter(
+            isPresented: $showFilePicker,
+            allowedContentTypes: [.mp3, .mpeg4Audio, .wav]
+        ) { result in
+            vm.handlePickedFile(
+                result: result,
+                addMode: addMode,
+                targetLaneID: targetLaneID,
+                openRangeSheet: {
+                    showRangeSheet = true
+                },
+                setPending: { sid, mode, laneID in
+                    pendingSourceID = sid
+                    pendingAddMode = mode
+                    pendingLaneID = laneID
+                }
+            )
         }
     }
     @MainActor

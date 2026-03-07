@@ -16,8 +16,11 @@ struct MainTabView: View {
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            HomeView()
-                .tabItem { Label("Home", systemImage: "house.fill") }
+            NavigationStack {
+                HomeView()
+            }
+            .tag(0)
+            .tabItem { Label("Home", systemImage: "house.fill") }
             
             NavigationStack {
                 LaneEditorView()
@@ -25,9 +28,17 @@ struct MainTabView: View {
             .tag(1)
             .tabItem { Label("Mix", systemImage: "waveform") }
             
-            SettingsView()
-                .tag(2)
-                .tabItem { Label("Ayarlar", systemImage: "gearshape.fill") }
+            NavigationStack {
+                RecentMixesView()
+            }
+            .tabItem { Label("Son Mixler", systemImage: "clock.arrow.circlepath") }
+            .tag(2)
+            
+            NavigationStack {
+                SettingsView()
+            }
+            .tag(3)
+            .tabItem { Label("Ayarlar", systemImage: "gearshape.fill") }
         }
         .environmentObject(themeManager)
         //.tint(Color.white)

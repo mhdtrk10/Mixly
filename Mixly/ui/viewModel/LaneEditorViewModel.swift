@@ -359,6 +359,39 @@ final class LaneEditorViewModel: ObservableObject {
         // istersen otomatik başlat:
         startPlayBack()
     }
-    
+    func createPickedSource(_ url: URL) async -> UUID? {
+        let ok = url.startAccessingSecurityScopedResource()
+        if ok { accessedURLs.insert(url) }
+        print("security access:", ok, url.lastPathComponent)
+
+        isLoading = true
+        defer { isLoading = false }
+
+        let dur = await readDurationSec(url: url)
+        let wf  = await loadWaveformSamples(url: url)
+
+        var src = AudioSource(url: url, durationSec: dur)
+        src.waveform = wf
+
+        sources.append(src)
+        return src.id
+    }
+    @MainActor
+    func handlePickedFile(
+        result: Result<URL, Error>,
+        addMode: LaneEditorView.AddMode,
+        targetLaneID: UUID?,
+        openRangeSheet: @escaping () -> Void,
+        setPending: @escaping (UUID, LaneEditorView.AddMode, UUID?) -> Void
+    ) {
+        guard case .success(let url) = result else { return }
+
+        Task { @MainActor in
+            guard let sid = await createPickedSource(url) else { return }
+
+            setPending(sid, addMode, targetLaneID)
+            openRangeSheet()
+        }
+    }
 }
 
