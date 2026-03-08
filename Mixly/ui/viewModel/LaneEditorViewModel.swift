@@ -357,7 +357,7 @@ final class LaneEditorViewModel: ObservableObject {
         playHeadSec = 0
         
         // istersen otomatik başlat:
-        startPlayBack()
+        //startPlayBack()
     }
     func createPickedSource(_ url: URL) async -> UUID? {
         let ok = url.startAccessingSecurityScopedResource()

@@ -15,7 +15,7 @@ struct MiniWaveformView: View {
             HStack(alignment: .center, spacing: 3) {
                 ForEach(0..<32, id: \.self) { i in
                     Capsule()
-                        .fill(isPlaying ? Color.white.opacity(0.5) : Color.accentColor.opacity(0.45))
+                        .fill(isPlaying ? Color.accentColor : Color.white)
                         .frame(
                             width: max(2, geo.size.width / 50),
                             height: [8, 12, 16, 10, 18, 7, 14, 20][i % 8]

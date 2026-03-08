@@ -63,7 +63,7 @@ struct MixCardView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 18)
                 .stroke(
-                    isPlaying ? Color.accentColor.opacity(0.5) : Color.white.opacity(0.08),
+                    isPlaying ? Color.accentColor : Color.white.opacity(0.08),
                     lineWidth: isPlaying ? 1.2 : 1
                 )
         )

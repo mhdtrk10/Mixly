@@ -69,7 +69,7 @@ struct LaneEditorView: View {
                             Button {
                                 addMode = .firstOrNewLane
                                 targetLaneID = nil
-                                showSongPickerSheet = true
+                                showFilePicker = true
                             } label: {
                                 Text("Şarkı Ekle")
                                     .foregroundStyle(.white)
@@ -186,6 +186,7 @@ struct LaneEditorView: View {
                             .background(Color.accentColor.opacity(0.5))
                             .cornerRadius(12)
                     }
+                    .buttonStyle(PressableStyle())
 
                     Spacer()
 

@@ -19,8 +19,8 @@ struct TabBarStyle {
         let normalText = UIColor.gray
 
         // SELECTED (seçili)
-        let selectedIcon = UIColor.systemTeal
-        let selectedText = UIColor.systemTeal
+        let selectedIcon = UIColor.systemBlue
+        let selectedText = UIColor.systemBlue
 
         // ✅ 1) stacked (iPhone portrait çoğu zaman)
         appearance.stackedLayoutAppearance.normal.iconColor = normalIcon
