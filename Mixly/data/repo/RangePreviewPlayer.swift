@@ -17,7 +17,8 @@ final class RangePreviewPlayer: ObservableObject {
     private let player = AVAudioPlayerNode()
     private var file: AVAudioFile?
     private var sampleRate: Double = 44100
-
+    @Published var durationSec: Double = 0
+    
     init() {
         engine.attach(player)
         engine.connect(player, to: engine.mainMixerNode, format: nil)
@@ -30,17 +31,32 @@ final class RangePreviewPlayer: ObservableObject {
 
     func prepare(url: URL) {
         do {
-            let f = try AVAudioFile(forReading: url)
-            file = f
-            sampleRate = f.processingFormat.sampleRate
+            let file = try AVAudioFile(forReading: url)
+            self.file = file
+            self.sampleRate = file.processingFormat.sampleRate
+            
+            let frames = Double(file.length)
+            self.durationSec = frames / sampleRate
+            
+            try prepareSessionIfNeeded()
+            try startEngineIfNeeded()
+
         } catch {
-            print("❌ prepare file error:", error)
+            print("❌ prepare file error:", error.localizedDescription)
         }
     }
 
     func playRange(startSec: Double, endSec: Double) {
         guard let file else { return }
-
+        
+        do {
+            try prepareSessionIfNeeded()
+            try startEngineIfNeeded()
+        } catch {
+            print("❌ preview engine/session error:", error.localizedDescription)
+            return
+        }
+        
         stop()
 
         let lengthSec = max(0, endSec - startSec)
@@ -60,11 +76,24 @@ final class RangePreviewPlayer: ObservableObject {
 
         player.play()
         isPlaying = true
+        
     }
 
     func stop() {
         if player.isPlaying { player.stop() }
         isPlaying = false
+    }
+    private func prepareSessionIfNeeded() throws {
+        let session = AVAudioSession.sharedInstance()
+        try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+        try session.setActive(true)
+    }
+
+    private func startEngineIfNeeded() throws {
+        if !engine.isRunning {
+            engine.prepare()
+            try engine.start()
+        }
     }
 
     nonisolated deinit {

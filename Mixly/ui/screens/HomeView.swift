@@ -18,14 +18,7 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                /*
-                LinearGradient(
-                    colors: [.purple.opacity(0.8),.blue.opacity(0.8)],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-                .ignoresSafeArea()
-                */
+                
                 
                 themeManager.theme.background
                     .ignoresSafeArea()
@@ -44,38 +37,6 @@ struct HomeView: View {
                     }
                     .padding(.top, 64)
                     
-                    /*
-                    // ortada waveform kartı görsel olarak
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill (
-                            LinearGradient(
-                                colors: [.purple.opacity(0.8),.blue.opacity(0.8)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(height: 180)
-                        .overlay (
-                            VStack(spacing: 12) {
-                                ZStack {
-                                    Circle()
-                                        .frame(width: 50, height: 50)
-                                        .foregroundStyle(Color.white)
-                                    Image(systemName: "waveform.circle.fill")
-                                        .font(.system(size: 50))
-                                        .foregroundStyle(themeManager.theme.background)
-                                }
-                                
-                                Text("MultiTrack & Playlist Modu")
-                                    .font(.headline)
-                                    .foregroundStyle(.white)
-                                Text("İster sırayla çal, ister aynı anda miksle!")
-                                    .font(.caption)
-                                    .foregroundStyle(.white.opacity(0.9))
-                            }
-                        )
-                        .padding(.horizontal, 22)
-                    */
                     Spacer()
                     
                     // alt butonlar

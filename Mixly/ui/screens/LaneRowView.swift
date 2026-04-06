@@ -29,6 +29,10 @@ struct LaneRowView: View {
     
     let onDeleteItem: (UUID, UUID) -> Void
     
+    //@State private var showFilePicker = false
+    //@StateObject private var vm = LaneEditorViewModel()
+    //@State private var addMode: AddMode = .firstOrNewLane
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
 
@@ -87,6 +91,26 @@ struct LaneRowView: View {
                 }
                 .offset(x: CGFloat(maxLaneEndSec) * pxPerSec + 12)
             }
+            /*
+            .fileImporter(
+                isPresented: $showFilePicker,
+                allowedContentTypes: [.mp3, .mpeg4Audio, .wav]
+            ) { result in
+                vm.handlePickedFile(
+                    result: result,
+                    addMode: addMode,
+                    targetLaneID: targetLaneID,
+                    openRangeSheet: {
+                        showFilePicker = true
+                    },
+                    setPending: { sid, mode, laneID in
+                        pendingSourceID = sid
+                        pendingAddMode = mode
+                        pendingLaneID = laneID
+                    }
+                )
+            }
+            */
             .contentShape(Rectangle())
             .onTapGesture {
                 onTapLane()
@@ -169,26 +193,5 @@ struct LaneItemBlockView: View {
     }
 }
 
-/*
-private struct LaneItemFallbackView: View {
-    let item: LaneItem
-    let pxPerSec: CGFloat
-    let height: CGFloat
-    
-    var body: some View {
-        let x = CGFloat(item.timelineStartSec) * pxPerSec
-        let w = max(CGFloat(item.lengthSec) * pxPerSec, 20)
-        
-        return RoundedRectangle(cornerRadius: 10)
-            .fill(Color.white.opacity(0.12))
-            .overlay(
-                Text("Item")
-                    .font(.caption2)
-                    .foregroundColor(.white.opacity(0.7))
-            )
-            .frame(width: w, height: height)
-            .offset(x: x)
-    }
-}
-*/
+
 

@@ -14,26 +14,7 @@ struct SongPickSheet: View {
     @EnvironmentObject private var themeManager: ThemeManager
     var body: some View {
         NavigationStack {
-            /*
-            List {
-                ForEach(demoSongs, id: \.self) { name in
-                    Button {
-                        onPick(name)
-                    } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: "music.note")
-                                .foregroundStyle(Color.white)
-                            Text(name)
-                                .foregroundStyle(Color.white)
-                        }
-                        .frame(width: 100, height: 40)
-                        .background(Color.red)
-                        .cornerRadius(8)
-                    }
-                    
-                }
-            }
-             */
+            
             ZStack {
                 
                 themeManager.theme.background.edgesIgnoringSafeArea(.all)

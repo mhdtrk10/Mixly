@@ -110,7 +110,7 @@ struct LaneEditorView: View {
                                                 vm.selectLane(lane.id)
                                                 addMode = .appendRight
                                                 targetLaneID = lane.id
-                                                showSongPickerSheet = true
+                                                showFilePicker = true
                                             },
                                             onDeleteItem: { laneID, itemID in
                                                 vm.removeItem(laneID: laneID, itemID: itemID)
@@ -124,7 +124,7 @@ struct LaneEditorView: View {
                                     Button {
                                         addMode = .firstOrNewLane
                                         targetLaneID = nil
-                                        showSongPickerSheet = true
+                                        showFilePicker = true
                                     } label: {
                                         HStack(spacing: 8) {
                                             Image(systemName: "plus.circle.fill")
@@ -400,7 +400,7 @@ struct LaneEditorView: View {
 struct BannerTopBar: View {
 
     // Google Test Banner ID
-    private let bannerID = "ca-app-pub-3940256099942544/2435281174"
+    private let bannerID = "ca-app-pub-2214588741197172/2357812124"
 
     var body: some View {
 
@@ -408,8 +408,9 @@ struct BannerTopBar: View {
         let size = largePortraitAnchoredAdaptiveBanner(width: width)
 
         AdBannerView(adUnitID: bannerID, adSize: size)
-            .frame(width: size.size.width, height: 40)
+            .frame(width: size.size.width, height: 50)
             .frame(maxWidth: .infinity)
+            .background(Color.gray.opacity(0.4))
             
     }
 }

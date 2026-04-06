@@ -26,19 +26,28 @@ struct RangePickSheet: View {
     init(
         source: AudioSource,
         pxPerSec: CGFloat,
-        defaultStart: Double = 20,
-        defaultEnd: Double = 30,
+        defaultStart: Double = 0,
+        defaultEnd: Double = 10,
         onConfirm: @escaping (_ start: Double, _ end: Double) -> Void,
         onCancel: @escaping () -> Void
     ) {
         self.source = source
         self.pxPerSec = pxPerSec
         
-        //let editorPxPerSec: CGFloat = 40 // 1 saniye 40pt (çok daha rahat)
+        
+        let safeDuration = max(0, source.durationSec)
+        
         
         // şarkı kısa ise clamp
-        let s = min(max(0, defaultStart), source.durationSec)
-        let e = min(max(s, defaultEnd), source.durationSec)
+        let s = min(max(0, defaultStart), max(0, safeDuration))
+        let proposedEnd = min(defaultEnd, safeDuration)
+        
+        let e: Double
+        if proposedEnd - s >= 0.1 {
+            e = proposedEnd
+        } else {
+            e = min(s + min(5, safeDuration), safeDuration)
+        }
 
         _startSec = State(initialValue: s)
         _endSec = State(initialValue: e)
@@ -76,7 +85,7 @@ struct RangePickSheet: View {
                             ScrollViewReader { proxy in
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     RangePickRow(
-                                        durationSec: source.durationSec,
+                                        durationSec: preview.durationSec,
                                         waveform: source.waveform,
                                         pxPerSec: pxPerSec,
                                         startSec: $startSec,
@@ -110,7 +119,6 @@ struct RangePickSheet: View {
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 16)
-                        //.padding(.bottom, 8)
                     }
                     .frame(maxWidth: .infinity, maxHeight: 120)
                     .background(Color.accentColor)
@@ -148,8 +156,10 @@ struct RangePickSheet: View {
                             if preview.isPlaying {
                                 preview.stop()
                             } else {
+                                
                                 preview.playRange(startSec: startSec, endSec: endSec)
                             }
+                            
                         } label: {
                             HStack(spacing: 8) {
                                 Text(preview.isPlaying ? "Durdur" : "Dinle")
@@ -178,11 +188,11 @@ struct RangePickSheet: View {
                 .padding(.horizontal, 12)
                 .onAppear {
                     preview.prepare(url: source.url)
+                    preview.stop()
                 }
                 .onDisappear {
                     preview.stop()
                 }
-                //.background(Color.cyan)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button {
@@ -200,26 +210,7 @@ struct RangePickSheet: View {
                         .buttonStyle(PressableStyle())
                     }
                     .sharedBackgroundVisibility(.hidden)
-                    /*
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button {
-                            let s = min(max(0, startSec), source.durationSec)
-                            let e = min(max(s, endSec), source.durationSec)
-                            onConfirm(s, e)
-                        } label: {
-                            Text("Ekle")
-                                .foregroundStyle(Color.white)
-                                .font(Font.body.bold())
-                                .frame(width: 100, height: 40)
-                                .background(Color.accentColor.opacity(0.5))
-                                .cornerRadius(12)
-                        }
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 8)
-                        .buttonStyle(PressableStyle())
-                    }
-                    .sharedBackgroundVisibility(.hidden)
-                     */
+                    
                 }
             }
         }

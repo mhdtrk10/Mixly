@@ -24,7 +24,7 @@ struct MixlyApp: App {
     
     var body: some Scene {
         WindowGroup {
-            MainTabView()
+            RootView()
                 .environmentObject(themeManager)
                 .environmentObject(adManager)
                 .environmentObject(playback)

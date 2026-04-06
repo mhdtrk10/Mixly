@@ -37,7 +37,7 @@ final class AdManager: NSObject, ObservableObject {
             Task { @MainActor [strongSelf] in
                 strongSelf.interstitial = ad
                 strongSelf.interstitial?.fullScreenContentDelegate = strongSelf
-                print("✅ interstitial loaded")
+                //print("✅ interstitial loaded")
             }
         }
     }

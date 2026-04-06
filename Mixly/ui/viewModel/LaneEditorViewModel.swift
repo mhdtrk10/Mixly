@@ -82,7 +82,7 @@ final class LaneEditorViewModel: ObservableObject {
     func addPickedSource(url: URL) {
         let ok = url.startAccessingSecurityScopedResource()
         if ok { accessedURLs.insert(url) }
-        print("security access:", ok, url.lastPathComponent)
+        //print("security access:", ok, url.lastPathComponent)
 
         Task { @MainActor in
             isLoading = true
@@ -120,7 +120,7 @@ final class LaneEditorViewModel: ObservableObject {
         lanes.append(lane)
         selectedLaneID = lane.id
         resetPlayHead()
-        print("✅ addToNewLane CUSTOM:", sourceID, "t=\(timelineStartSec)", "src=\(safeStart)", "len=\(safeLen)")
+        //print("✅ addToNewLane CUSTOM:", sourceID, "t=\(timelineStartSec)", "src=\(safeStart)", "len=\(safeLen)")
     }
 
     /// Var olan lane'in sağına ekle. timelineStartSec verilmezse lane'in sonuna ekler.
@@ -144,7 +144,7 @@ final class LaneEditorViewModel: ObservableObject {
         lanes[laneIndex].items.append(item)
         selectedLaneID = laneID
         resetPlayHead()
-        print("✅ addToRight CUSTOM:", sourceID, "t=\(tStart)", "src=\(safeStart)", "len=\(safeLen)")
+        //print("✅ addToRight CUSTOM:", sourceID, "t=\(tStart)", "src=\(safeStart)", "len=\(safeLen)")
     }
 
     // MARK: - Move item on timeline (drag)
@@ -239,15 +239,17 @@ final class LaneEditorViewModel: ObservableObject {
     }
     func exportMix() async -> URL? {
         let fileName = "Mixly-\(UUID().uuidString).caf"
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+        let cafURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
 
         do {
             try exporter.export(
                 lanes: lanes,
                 sources: sources,
-                outputURL: url
+                outputURL: cafURL
             )
-            return url
+            let m4aURL = try await convertCAFToM4A(inputURL: cafURL)
+            
+            return m4aURL
         } catch {
             print("⛔️ export error:", error)
             return nil
@@ -362,17 +364,25 @@ final class LaneEditorViewModel: ObservableObject {
     func createPickedSource(_ url: URL) async -> UUID? {
         let ok = url.startAccessingSecurityScopedResource()
         if ok { accessedURLs.insert(url) }
-        print("security access:", ok, url.lastPathComponent)
+        //print("security access:", ok, url.lastPathComponent)
 
         isLoading = true
         defer { isLoading = false }
-
+        
+        print("📁 picked file:", url.lastPathComponent)
+        
         let dur = await readDurationSec(url: url)
+        print("duration: ", dur)
+        
         let wf  = await loadWaveformSamples(url: url)
-
+        print("waveform samples: ", wf.count)
+        
+        
         var src = AudioSource(url: url, durationSec: dur)
         src.waveform = wf
-
+        
+        
+        
         sources.append(src)
         return src.id
     }
@@ -391,6 +401,31 @@ final class LaneEditorViewModel: ObservableObject {
 
             setPending(sid, addMode, targetLaneID)
             openRangeSheet()
+        }
+    }
+    func convertCAFToM4A(inputURL: URL) async throws -> URL {
+        let outputURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("m4a")
+
+        let asset = AVURLAsset(url: inputURL)
+
+        guard let exportSession = AVAssetExportSession(
+            asset: asset,
+            presetName: AVAssetExportPresetAppleM4A
+        ) else {
+            throw NSError(domain: "Export", code: -1)
+        }
+
+        exportSession.outputURL = outputURL
+        exportSession.outputFileType = .m4a
+
+        await exportSession.export()
+
+        if exportSession.status == .completed {
+            return outputURL
+        } else {
+            throw exportSession.error ?? NSError(domain: "Export", code: -2)
         }
     }
 }

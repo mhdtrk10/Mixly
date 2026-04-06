@@ -17,9 +17,10 @@ struct RangePickRow: View {
 
     private let height: CGFloat = 56
     private let handleSize: CGFloat = 22
-
+    @State private var dragStartEndSec: Double? = nil
+    @State private var dragStartStartSec: Double? = nil
     var body: some View {
-        let totalWidth = max(CGFloat(durationSec) * pxPerSec, 200)
+        let totalWidth = CGFloat(durationSec) * pxPerSec
         let startX = CGFloat(startSec) * pxPerSec
         let endX   = CGFloat(endSec) * pxPerSec
 
@@ -60,8 +61,23 @@ struct RangePickRow: View {
                 .gesture(
                     DragGesture(minimumDistance: 0)
                         .onChanged { value in
-                            let sec = Double(value.location.x / pxPerSec)
-                            startSec = clamp(sec, 0, endSec) // end'i geçmesin
+                            if dragStartStartSec == nil {
+                                dragStartStartSec = startSec
+                            }
+                            
+                            let startValue = dragStartStartSec ?? startSec
+                            let deltaSec = Double(value.translation.width / pxPerSec)
+                            let rawSec = startValue + deltaSec
+                            let clamped = clamp(rawSec, 0, endSec)
+
+                            if clamped <= 0.5 {
+                                startSec = 0
+                            } else {
+                                startSec = clamp(clamped.rounded(), 0, endSec)
+                            }
+                        }
+                        .onEnded { _ in
+                            dragStartStartSec = nil
                         }
                 )
 
@@ -71,8 +87,23 @@ struct RangePickRow: View {
                 .gesture(
                     DragGesture(minimumDistance: 0)
                         .onChanged { value in
-                            let sec = Double(value.location.x / pxPerSec)
-                            endSec = clamp(sec, startSec, durationSec) // start'ın altına inmesin
+                            if dragStartEndSec == nil {
+                                dragStartEndSec = endSec
+                            }
+                            
+                            let startValue = dragStartEndSec ?? endSec
+                            let deltaSec = Double(value.translation.width / pxPerSec)
+                            let rawSec = startValue + deltaSec
+                            let clamped = clamp(rawSec, startSec, durationSec)
+
+                            if clamped >= durationSec - 0.5 {
+                                endSec = durationSec
+                            } else {
+                                endSec = clamp(clamped.rounded(), startSec, durationSec)
+                            }
+                        }
+                        .onEnded { _ in
+                            dragStartEndSec = nil
                         }
                 )
         }

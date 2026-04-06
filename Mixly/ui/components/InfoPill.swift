@@ -14,10 +14,11 @@ struct InfoPill: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(value)
                 .font(.headline)
+                .foregroundStyle(Color.white)
+            Text(value)
+                .font(.caption)
+                .foregroundStyle(Color.white)
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 12)

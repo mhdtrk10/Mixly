@@ -18,14 +18,14 @@ final class MixPlaybackManager: ObservableObject {
     private var player: AVAudioPlayer?
 
     func togglePlay(mixID: UUID, fileName: String) {
-        print("🎯 togglePlay called")
-        print("mixID:", mixID)
-        print("fileName:", fileName)
-        print("currentMixID:", currentMixID as Any, "isPlaying:", isPlaying)
+        //print("🎯 togglePlay called")
+        //print("mixID:", mixID)
+        //print("fileName:", fileName)
+        //print("currentMixID:", currentMixID as Any, "isPlaying:", isPlaying)
 
         // aynı mix çalıyorsa pause
         if currentMixID == mixID, isPlaying {
-            print("⏸️ pause current mix")
+            //print("⏸️ pause current mix")
             player?.pause()
             isPlaying = false
             return
@@ -33,7 +33,7 @@ final class MixPlaybackManager: ObservableObject {
 
         // aynı mix paused ise resume
         if currentMixID == mixID, !isPlaying {
-            print("▶️ resume current mix")
+            //print("▶️ resume current mix")
             player?.play()
             isPlaying = true
             return
@@ -44,14 +44,14 @@ final class MixPlaybackManager: ObservableObject {
             player = nil
 
             let url = try MixLibrary.urlFor(fileName: fileName)
-            print("📂 resolved url:", url.path)
-            print("📂 file exists:", FileManager.default.fileExists(atPath: url.path))
+            //print("📂 resolved url:", url.path)
+            //print("📂 file exists:", FileManager.default.fileExists(atPath: url.path))
 
             let p = try AVAudioPlayer(contentsOf: url)
             p.prepareToPlay()
 
             let played = p.play()
-            print("▶️ AVAudioPlayer play result:", played)
+            //print("▶️ AVAudioPlayer play result:", played)
 
             player = p
             currentMixID = mixID

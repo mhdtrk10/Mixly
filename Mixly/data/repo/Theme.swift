@@ -61,7 +61,7 @@ final class ThemeManager: ObservableObject {
     @AppStorage("mixly.theme") private var storedTheme: String = AppTheme.deepIndigo.rawValue
 
     var theme: AppTheme {
-        get { AppTheme(rawValue: storedTheme) ?? .deepIndigo }
+        get { AppTheme(rawValue: storedTheme) ?? .purpleBlue }
         set { storedTheme = newValue.rawValue }
     }
 
