@@ -23,6 +23,11 @@ struct RangePickSheet: View {
     
     @StateObject private var preview = RangePreviewPlayer()
     
+    @State private var volume: Float = 1.0
+    @State private var rate: Float = 1.0
+    @State private var reverbMix: Float = 0
+    
+    
     init(
         source: AudioSource,
         pxPerSec: CGFloat,
@@ -132,6 +137,68 @@ struct RangePickSheet: View {
                     .padding(.bottom, 8)
                     
                     
+                    
+                    VStack(spacing: 8) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text("Ses")
+                                    .foregroundStyle(.white)
+                                Spacer()
+                                Text("\(Int(volume * 100))%")
+                                    .foregroundStyle(.white.opacity(0.8))
+                            }
+
+                            Slider(
+                                value: Binding(
+                                    get: { Double(volume) },
+                                    set: { volume = Float($0) }
+                                ),
+                                in: 0...1
+                            )
+                            .tint(.white)
+                        }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text("Hız")
+                                    .foregroundStyle(.white)
+                                Spacer()
+                                Text(String(format: "%.1fx", rate))
+                                    .foregroundStyle(.white.opacity(0.8))
+                            }
+
+                            Slider(
+                                value: Binding(
+                                    get: { Double(rate) },
+                                    set: { rate = Float($0) }
+                                ),
+                                in: 0.5...1.5
+                            )
+                            .tint(.white)
+                        }
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text("Reverb")
+                                    .foregroundStyle(.white)
+                                Spacer()
+                                Text("\(Int(reverbMix))%")
+                                    .foregroundStyle(.white.opacity(0.8))
+                            }
+
+                            Slider(
+                                value: Binding(
+                                    get: { Double(reverbMix) },
+                                    set: { reverbMix = Float($0) }
+                                ),
+                                in: 0...100
+                            )
+                            .tint(.white)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 8)
+                    
+                    
                     HStack(spacing: 12) {
                         
                         Button {
@@ -157,7 +224,7 @@ struct RangePickSheet: View {
                                 preview.stop()
                             } else {
                                 
-                                preview.playRange(startSec: startSec, endSec: endSec)
+                                preview.playRange(startSec: startSec, endSec: endSec, volume: volume, rate: rate, reverbMix: reverbMix)
                             }
                             
                         } label: {

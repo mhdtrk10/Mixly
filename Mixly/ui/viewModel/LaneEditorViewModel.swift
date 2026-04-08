@@ -57,6 +57,19 @@ final class LaneEditorViewModel: ObservableObject {
             .max() ?? 0
     }
     
+    @Published var selectedItemID: UUID?
+    
+    var selectedItem: LaneItem? {
+        guard let selectedItemID else { return nil }
+        
+        for lane in lanes {
+            if let item = lane.items.first(where: {$0.id == selectedItemID}) {
+                return item
+            }
+        }
+        return nil
+    }
+    
 
     // MARK: - Source creation
 
@@ -386,7 +399,7 @@ final class LaneEditorViewModel: ObservableObject {
         sources.append(src)
         return src.id
     }
-    @MainActor
+    
     func handlePickedFile(
         result: Result<URL, Error>,
         addMode: LaneEditorView.AddMode,
@@ -426,6 +439,14 @@ final class LaneEditorViewModel: ObservableObject {
             return outputURL
         } else {
             throw exportSession.error ?? NSError(domain: "Export", code: -2)
+        }
+    }
+    func updateVolume(itemID: UUID, volume: Float) {
+        for laneIndex in lanes.indices {
+            if let itemIndex = lanes[laneIndex].items.firstIndex(where: { $0.id == itemID } ) {
+                lanes[laneIndex].items[itemIndex].volume = volume
+                break
+            }
         }
     }
 }

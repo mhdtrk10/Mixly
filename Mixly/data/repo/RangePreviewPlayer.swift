@@ -19,9 +19,21 @@ final class RangePreviewPlayer: ObservableObject {
     private var sampleRate: Double = 44100
     @Published var durationSec: Double = 0
     
+    
+    private let timePitch = AVAudioUnitTimePitch()
+    private let reverb = AVAudioUnitReverb()
+    
     init() {
         engine.attach(player)
-        engine.connect(player, to: engine.mainMixerNode, format: nil)
+        engine.attach(timePitch)
+        engine.attach(reverb)
+        
+        reverb.loadFactoryPreset(.mediumHall)
+        reverb.wetDryMix = 0
+        
+        engine.connect(player, to: timePitch, format: nil)
+        engine.connect(timePitch, to: reverb, format: nil)
+        engine.connect(reverb, to: engine.mainMixerNode, format: nil)
         do {
             try engine.start()
         } catch {
@@ -46,7 +58,7 @@ final class RangePreviewPlayer: ObservableObject {
         }
     }
 
-    func playRange(startSec: Double, endSec: Double) {
+    func playRange(startSec: Double, endSec: Double, volume: Float, rate: Float, reverbMix: Float) {
         guard let file else { return }
         
         do {
@@ -64,7 +76,10 @@ final class RangePreviewPlayer: ObservableObject {
 
         let startFrame = AVAudioFramePosition(startSec * sampleRate)
         let frames = AVAudioFrameCount(lengthSec * sampleRate)
-
+        
+        player.volume = volume
+        timePitch.rate = rate
+        reverb.wetDryMix = reverbMix
         player.scheduleSegment(file,
                                startingFrame: startFrame,
                                frameCount: frames,

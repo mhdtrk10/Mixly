@@ -23,7 +23,7 @@ struct LaneEditorView: View {
     @State private var pendingAddMode: AddMode = .firstOrNewLane
     @State private var pendingLaneID: UUID? = nil
 
-    private let demoSongs: [String] = ["attention", "katy", "streets", "katyvocal"]
+    //private let demoSongs: [String] = ["attention", "katy", "streets", "katyvocal"]
 
     private let timelineWidth: CGFloat = 3000
     private let secondsShown: Double = 300
@@ -102,6 +102,8 @@ struct LaneEditorView: View {
                                             },
                                             onTapItem: { item in
                                                 vm.beginEdit(laneID: lane.id, item: item)
+                                                vm.selectedItemID = item.id
+                                                print("✅ selected item id:", item.id)
                                             },
                                             onTapLane: {
                                                 vm.selectLane(lane.id)
@@ -117,7 +119,7 @@ struct LaneEditorView: View {
                                             }
                                         )
                                         .padding(.leading, 12)
-                                        //.padding(.bottom, 12)
+                                        
                                     }
                                     
                                     
@@ -169,6 +171,7 @@ struct LaneEditorView: View {
                 }
 
                 Spacer(minLength: 8)
+                
 
                 // Bottom bar
                 HStack {
@@ -266,6 +269,7 @@ struct LaneEditorView: View {
         .onAppear {
             adManager.loadInterstitial()
         }
+        /*
         // MARK: - Sheets
         .sheet(isPresented: $showSongPickerSheet) {
             SongPickSheet(
@@ -287,6 +291,7 @@ struct LaneEditorView: View {
                 onClose: { showSongPickerSheet = false }
             )
         }
+        */
         .sheet(isPresented: $showRangeSheet) {
             if let sid = pendingSourceID,
                let src = vm.sources.first(where: { $0.id == sid }) {

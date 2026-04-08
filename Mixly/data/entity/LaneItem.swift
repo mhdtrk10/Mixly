@@ -12,7 +12,6 @@ struct LaneItem: Identifiable, Equatable {
     
     let id: UUID = UUID()
     
-    
     // hangi kaynak şarkı geliyor
     let sourceID: UUID
     
@@ -25,6 +24,9 @@ struct LaneItem: Identifiable, Equatable {
     // global timeline da kaçıncı saniyede başlayacak
     var timelineStartSec: Double
     
+    //ses yüksekliği için
+    var volume: Float = 1.0
+    
     // kaynak şarkın içinde bitiş saniyesi
     var sourceEndSec: Double {
         sourceStartSec + lengthSec
@@ -33,5 +35,7 @@ struct LaneItem: Identifiable, Equatable {
     var timelineEndSec: Double {
         timelineStartSec + lengthSec
     }
+    
+    
 }
 

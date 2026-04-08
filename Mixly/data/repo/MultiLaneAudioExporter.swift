@@ -55,6 +55,8 @@ final class MultiLaneAudioExporter {
             for item in items {
                 guard let src = sources.first(where: { $0.id == item.sourceID }) else { continue }
                 let file = try AVAudioFile(forReading: src.url)
+                
+                player.volume = item.volume
 
                 let fileSR = file.processingFormat.sampleRate
                 let startFrame = AVAudioFramePosition(item.sourceStartSec * fileSR)
