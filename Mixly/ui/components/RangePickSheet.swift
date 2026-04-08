@@ -16,7 +16,7 @@ struct RangePickSheet: View {
     @State private var startSec: Double
     @State private var endSec: Double
 
-    let onConfirm: (_ start: Double, _ end: Double) -> Void
+    let onConfirm: (_ start: Double, _ end: Double, _ volume: Float, _ rate: Float, _ reverbMix: Float) -> Void
     let onCancel: () -> Void
     
     @EnvironmentObject private var themeManager: ThemeManager
@@ -33,7 +33,7 @@ struct RangePickSheet: View {
         pxPerSec: CGFloat,
         defaultStart: Double = 0,
         defaultEnd: Double = 10,
-        onConfirm: @escaping (_ start: Double, _ end: Double) -> Void,
+        onConfirm: @escaping (_ start: Double, _ end: Double, _ volume: Float, _ rate: Float, _ reverbMix: Float) -> Void,
         onCancel: @escaping () -> Void
     ) {
         self.source = source
@@ -59,6 +59,7 @@ struct RangePickSheet: View {
 
         self.onConfirm = onConfirm
         self.onCancel = onCancel
+        
     }
 
     var body: some View {
@@ -204,7 +205,7 @@ struct RangePickSheet: View {
                         Button {
                             let s = min(max(0, startSec), source.durationSec)
                             let e = min(max(s, endSec), source.durationSec)
-                            onConfirm(s, e)
+                            onConfirm(s, e, volume, rate, reverbMix)
                         } label: {
                             Text("Ekle")
                                 .foregroundStyle(Color.white)

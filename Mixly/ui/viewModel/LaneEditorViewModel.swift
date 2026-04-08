@@ -449,5 +449,198 @@ final class LaneEditorViewModel: ObservableObject {
             }
         }
     }
+    func createProcessedClip(
+        sourceURL: URL,
+        startSec: Double,
+        endSec: Double,
+        volume: Float,
+        rate: Float
+    ) async -> URL? {
+        let asset = AVURLAsset(url: sourceURL)
+        
+        do {
+            let tracks = try await asset.loadTracks(withMediaType: .audio)
+            guard let track = tracks.first else { return nil }
+            
+            let composition = AVMutableComposition()
+            guard let compTrack = composition.addMutableTrack(
+                withMediaType: .audio,
+                preferredTrackID: kCMPersistentTrackID_Invalid
+            ) else { return nil }
+            
+            let startTime = CMTime(seconds: startSec, preferredTimescale: 600)
+            let originalDuration = CMTime(seconds: endSec - startSec, preferredTimescale: 600)
+            
+            try compTrack.insertTimeRange(
+                CMTimeRange(start: startTime, duration: originalDuration),
+                of: track,
+                at: .zero
+            )
+            
+            let safeRate = max(0.1, rate)
+            let scaledDuration = CMTime(
+                seconds: (endSec - startSec) / Double(safeRate),
+                preferredTimescale: 600
+            )
+            
+            compTrack.scaleTimeRange(
+                CMTimeRange(start: .zero, duration: originalDuration),
+                toDuration: scaledDuration
+            )
+            
+            let audioMix = AVMutableAudioMix()
+            let params = AVMutableAudioMixInputParameters(track: compTrack)
+            params.setVolume(volume, at: .zero)
+            audioMix.inputParameters = [params]
+            
+            let outputURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("processed-\(UUID().uuidString).m4a")
+            
+            guard let exporter = AVAssetExportSession(
+                asset: composition,
+                presetName: AVAssetExportPresetAppleM4A
+            ) else { return nil }
+            
+            exporter.outputURL = outputURL
+            exporter.outputFileType = .m4a
+            exporter.audioMix = audioMix
+            
+            await exporter.export()
+            
+            if exporter.status == .completed {
+                return outputURL
+            } else {
+                print("❌ processed export failed:", exporter.error?.localizedDescription ?? "unknown")
+                return nil
+            }
+        } catch {
+            print("❌ processing error:", error.localizedDescription)
+            return nil
+        }
+    }
+    func makeProcessedSource(from url: URL) async -> AudioSource? {
+        let duration = await readDurationSec(url: url)
+        let waveform = await loadWaveformSamples(url: url)
+
+        return AudioSource(
+            id: UUID(),
+            url: url,
+            durationSec: duration,
+            waveform: waveform
+        )
+    }
+    
+    func createProcessedClip(
+        sourceURL: URL,
+        startSec: Double,
+        endSec: Double,
+        volume: Float,
+        rate: Float,
+        reverbMix: Float
+    ) async -> URL? {
+        do {
+            let file = try AVAudioFile(forReading: sourceURL)
+            let sourceFormat = file.processingFormat
+            let sampleRate = sourceFormat.sampleRate
+
+            let engine = AVAudioEngine()
+            let player = AVAudioPlayerNode()
+            let timePitch = AVAudioUnitTimePitch()
+            let reverb = AVAudioUnitReverb()
+
+            reverb.loadFactoryPreset(.mediumHall)
+            reverb.wetDryMix = reverbMix
+            timePitch.rate = rate
+
+            engine.attach(player)
+            engine.attach(timePitch)
+            engine.attach(reverb)
+
+            engine.connect(player, to: timePitch, format: sourceFormat)
+            engine.connect(timePitch, to: reverb, format: sourceFormat)
+            engine.connect(reverb, to: engine.mainMixerNode, format: sourceFormat)
+
+            let outputURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("processed-\(UUID().uuidString).caf")
+
+            let renderFormat = engine.mainMixerNode.outputFormat(forBus: 0)
+
+            try engine.enableManualRenderingMode(
+                .offline,
+                format: renderFormat,
+                maximumFrameCount: 4096
+            )
+
+            try engine.start()
+
+            let safeRate = max(0.1, rate)
+            let startFrame = AVAudioFramePosition(startSec * sampleRate)
+            let originalFrames = AVAudioFramePosition((endSec - startSec) * sampleRate)
+            let renderedFrames = AVAudioFramePosition(Double(originalFrames) / Double(safeRate))
+
+            player.volume = volume
+
+            player.scheduleSegment(
+                file,
+                startingFrame: startFrame,
+                frameCount: AVAudioFrameCount(originalFrames),
+                at: nil,
+                completionHandler: nil
+            )
+
+            player.play()
+
+            let outFile = try AVAudioFile(
+                forWriting: outputURL,
+                settings: renderFormat.settings
+            )
+
+            guard let buffer = AVAudioPCMBuffer(
+                pcmFormat: engine.manualRenderingFormat,
+                frameCapacity: engine.manualRenderingMaximumFrameCount
+            ) else {
+                print("❌ buffer oluşturulamadı")
+                engine.stop()
+                return nil
+            }
+
+            while engine.manualRenderingSampleTime < renderedFrames {
+                let framesToRender = min(
+                    buffer.frameCapacity,
+                    AVAudioFrameCount(renderedFrames - engine.manualRenderingSampleTime)
+                )
+
+                let status = try engine.renderOffline(framesToRender, to: buffer)
+
+                switch status {
+                case .success:
+                    try outFile.write(from: buffer)
+
+                case .insufficientDataFromInputNode:
+                    break
+
+                case .cannotDoInCurrentContext:
+                    break
+
+                case .error:
+                    print("❌ offline render error")
+                    engine.stop()
+                    return nil
+
+                @unknown default:
+                    break
+                }
+            }
+
+            player.stop()
+            engine.stop()
+
+            return outputURL
+
+        } catch {
+            print("❌ processed clip render error:", error.localizedDescription)
+            return nil
+        }
+    }
 }
 

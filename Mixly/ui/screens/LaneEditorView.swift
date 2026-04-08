@@ -299,22 +299,55 @@ struct LaneEditorView: View {
                 RangePickSheet(
                     source: src,
                     pxPerSec: pxPerSec,
-                    onConfirm: { start, end in
+                    onConfirm: { start, end, volume, rate, reverbMix in
                         Task { @MainActor in
-                            let length = max(0, end - start)
-
+                            
+                            guard let processedURL = await vm.createProcessedClip(
+                                sourceURL: src.url,
+                                startSec: start,
+                                endSec: end,
+                                volume: volume,
+                                rate: rate,
+                                reverbMix: reverbMix
+                            ) else {
+                                print("❌ processed clip oluşturulamadı")
+                                return
+                            }
+                            
+                            guard let newSource = await vm.makeProcessedSource(from: processedURL) else {
+                                print("❌ processed source oluşturulamadı")
+                                return
+                            }
+                            
+                            vm.sources.append(newSource)
+                            
+                            let processedLength = newSource.durationSec
+                            
                             switch pendingAddMode {
                             case .firstOrNewLane:
-                                vm.addToNewLane(sourceID: sid, start: start, length: length)
-
+                                vm.addToNewLane(
+                                    sourceID: newSource.id,
+                                    start: 0,
+                                    length: processedLength
+                                )
+                                
                             case .appendRight:
                                 if let laneID = pendingLaneID {
-                                    vm.addToRight(of: laneID, sourceID: sid, start: start, length: length)
+                                    vm.addToRight(
+                                        of: laneID,
+                                        sourceID: newSource.id,
+                                        start: 0,
+                                        length: processedLength
+                                    )
                                 } else {
-                                    vm.addToNewLane(sourceID: sid, start: start, length: length)
+                                    vm.addToNewLane(
+                                        sourceID: newSource.id,
+                                        start: 0,
+                                        length: processedLength
+                                    )
                                 }
                             }
-
+                            
                             pendingSourceID = nil
                             pendingLaneID = nil
                             showRangeSheet = false
@@ -337,7 +370,7 @@ struct LaneEditorView: View {
                     pxPerSec: pxPerSec,
                     defaultStart: edit.startSec,
                     defaultEnd: edit.endSec,
-                    onConfirm: { start, end in
+                    onConfirm: { start, end, volume, rate, reverbMix in
                         vm.updateItem(laneID: edit.laneID, itemID: edit.itemID, start: start, end: end)
                         vm.editingItem = nil
                     },
