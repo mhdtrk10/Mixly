@@ -148,7 +148,7 @@ struct LaneItemBlockView: View {
 
 
                 // küçük isim etiketi
-                Text(source.url.lastPathComponent)
+                Text(source.displayName)
                     .font(.caption2)
                     .fontWeight(.bold)
                     .foregroundColor(.black.opacity(0.9))

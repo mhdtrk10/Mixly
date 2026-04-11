@@ -16,7 +16,7 @@ struct RangePickSheet: View {
     @State private var startSec: Double
     @State private var endSec: Double
 
-    let onConfirm: (_ start: Double, _ end: Double, _ volume: Float, _ rate: Float, _ reverbMix: Float) -> Void
+    let onConfirm: (_ start: Double, _ end: Double, _ volume: Float, _ rate: Float, _ reverbMix: Float, _ fadeIn: Double, _ fadeOut: Double) -> Void
     let onCancel: () -> Void
     
     @EnvironmentObject private var themeManager: ThemeManager
@@ -27,13 +27,15 @@ struct RangePickSheet: View {
     @State private var rate: Float = 1.0
     @State private var reverbMix: Float = 0
     
+    @State private var fadeInSec: Double = 0
+    @State private var fadeOutSec: Double = 0
     
     init(
         source: AudioSource,
         pxPerSec: CGFloat,
         defaultStart: Double = 0,
         defaultEnd: Double = 10,
-        onConfirm: @escaping (_ start: Double, _ end: Double, _ volume: Float, _ rate: Float, _ reverbMix: Float) -> Void,
+        onConfirm: @escaping (_ start: Double, _ end: Double, _ volume: Float, _ rate: Float, _ reverbMix: Float, _ fadeIn: Double, _ fadeOut: Double) -> Void,
         onCancel: @escaping () -> Void
     ) {
         self.source = source
@@ -195,6 +197,37 @@ struct RangePickSheet: View {
                             )
                             .tint(.white)
                         }
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text("Fade In")
+                                    .foregroundStyle(.white)
+                                Spacer()
+                                Text("\(String(format: "%.1f", fadeInSec))s")
+                                    .foregroundStyle(.white.opacity(0.8))
+                            }
+
+                            Slider(
+                                value: $fadeInSec,
+                                in: 0...min(5, endSec - startSec)
+                            )
+                            .tint(.white)
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Text("Fade Out")
+                                    .foregroundStyle(.white)
+                                Spacer()
+                                Text("\(String(format: "%.1f", fadeOutSec))s")
+                                    .foregroundStyle(.white.opacity(0.8))
+                            }
+
+                            Slider(
+                                value: $fadeOutSec,
+                                in: 0...min(5, endSec - startSec)
+                            )
+                            .tint(.white)
+                        }
                     }
                     .padding(.horizontal, 16)
                     .padding(.bottom, 8)
@@ -205,7 +238,7 @@ struct RangePickSheet: View {
                         Button {
                             let s = min(max(0, startSec), source.durationSec)
                             let e = min(max(s, endSec), source.durationSec)
-                            onConfirm(s, e, volume, rate, reverbMix)
+                            onConfirm(s, e, volume, rate, reverbMix, fadeInSec, fadeOutSec)
                         } label: {
                             Text("Ekle")
                                 .foregroundStyle(Color.white)

@@ -299,8 +299,9 @@ struct LaneEditorView: View {
                 RangePickSheet(
                     source: src,
                     pxPerSec: pxPerSec,
-                    onConfirm: { start, end, volume, rate, reverbMix in
+                    onConfirm: { start, end, volume, rate, reverbMix, fadeInSec, fadeOutSec in
                         Task { @MainActor in
+                            
                             
                             guard let processedURL = await vm.createProcessedClip(
                                 sourceURL: src.url,
@@ -308,13 +309,18 @@ struct LaneEditorView: View {
                                 endSec: end,
                                 volume: volume,
                                 rate: rate,
-                                reverbMix: reverbMix
+                                reverbMix: reverbMix,
+                                fadeInSec: fadeInSec,
+                                fadeOutSec: fadeOutSec
                             ) else {
                                 print("❌ processed clip oluşturulamadı")
                                 return
                             }
                             
-                            guard let newSource = await vm.makeProcessedSource(from: processedURL) else {
+                            guard let newSource = await vm.makeProcessedSource(
+                                from: processedURL,
+                                originalName: src.displayName
+                            ) else {
                                 print("❌ processed source oluşturulamadı")
                                 return
                             }
@@ -370,7 +376,7 @@ struct LaneEditorView: View {
                     pxPerSec: pxPerSec,
                     defaultStart: edit.startSec,
                     defaultEnd: edit.endSec,
-                    onConfirm: { start, end, volume, rate, reverbMix in
+                    onConfirm: { start, end, volume, rate, reverbMix, fadeInSec, fadeOutSec in
                         vm.updateItem(laneID: edit.laneID, itemID: edit.itemID, start: start, end: end)
                         vm.editingItem = nil
                     },

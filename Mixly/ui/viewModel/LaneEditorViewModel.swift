@@ -518,15 +518,18 @@ final class LaneEditorViewModel: ObservableObject {
             return nil
         }
     }
-    func makeProcessedSource(from url: URL) async -> AudioSource? {
+    func makeProcessedSource(from url: URL, originalName: String) async -> AudioSource? {
         let duration = await readDurationSec(url: url)
         let waveform = await loadWaveformSamples(url: url)
+        
 
         return AudioSource(
             id: UUID(),
             url: url,
             durationSec: duration,
-            waveform: waveform
+            waveform: waveform,
+            customDisplayName: "\(originalName)"
+            
         )
     }
     
@@ -536,7 +539,9 @@ final class LaneEditorViewModel: ObservableObject {
         endSec: Double,
         volume: Float,
         rate: Float,
-        reverbMix: Float
+        reverbMix: Float,
+        fadeInSec: Double,
+        fadeOutSec: Double
     ) async -> URL? {
         do {
             let file = try AVAudioFile(forReading: sourceURL)
@@ -614,6 +619,36 @@ final class LaneEditorViewModel: ObservableObject {
 
                 switch status {
                 case .success:
+                    
+                    let totalFrames = renderedFrames
+                    let currentFrame = engine.manualRenderingSampleTime
+                    
+                    let fadeInFrames = AVAudioFramePosition(fadeInSec * sampleRate)
+                    let fadeOutFrames = AVAudioFramePosition(fadeOutSec * sampleRate)
+                    
+                    let channelCount = Int(buffer.format.channelCount)
+                    
+                    for frame in 0..<Int(buffer.frameLength) {
+                        
+                        let globalFrame = currentFrame + AVAudioFramePosition(frame)
+                        var gain: Float = 1.0
+                        
+                        // Fade In
+                        if fadeInFrames > 0 && globalFrame < fadeInFrames {
+                            gain = Float(globalFrame) / Float(fadeInFrames)
+                        }
+                        
+                        // Fade Out
+                        if fadeOutFrames > 0 && globalFrame > (totalFrames - fadeOutFrames) {
+                            let remaining = totalFrames - globalFrame
+                            gain = min(gain, Float(remaining) / Float(fadeOutFrames))
+                        }
+                        
+                        for ch in 0..<channelCount {
+                            buffer.floatChannelData?[ch][frame] *= gain
+                        }
+                    }
+                    
                     try outFile.write(from: buffer)
 
                 case .insufficientDataFromInputNode:

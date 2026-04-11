@@ -21,8 +21,12 @@ struct AudioSource: Identifiable, Equatable {
     // waveform örnekleri
     var waveform: [Float] = []
     
+    var customDisplayName: String? = nil
+    
     // UI da göstermek için dosya adı
     var displayName: String {
-        url.deletingPathExtension().lastPathComponent
+        customDisplayName ?? url.deletingPathExtension().lastPathComponent
     }
+    
+    
 }
