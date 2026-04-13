@@ -764,6 +764,11 @@ final class LaneEditorViewModel: ObservableObject {
                     break
                 }
             }
+            let lengthSec = endSec - startSec
+            guard lengthSec > 0.05 else {
+                print("❌ zero length clip")
+                return nil
+            }
 
             player.stop()
             engine.stop()

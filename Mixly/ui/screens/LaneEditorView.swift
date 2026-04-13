@@ -302,6 +302,10 @@ struct LaneEditorView: View {
                     onConfirm: { start, end, volume, rate, reverbMix, fadeInSec, fadeOutSec in
                         Task { @MainActor in
                             
+                            guard end - start > 0.05 else {
+                                print("❌ invalid range")
+                                return
+                            }
                             
                             guard let processedURL = await vm.createProcessedClip(
                                 sourceURL: src.url,

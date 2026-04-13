@@ -30,6 +30,15 @@ struct RangePickSheet: View {
     @State private var fadeInSec: Double = 0
     @State private var fadeOutSec: Double = 0
     
+    private var selectedLength: Double {
+        endSec - startSec
+    }
+
+    private var isValidRange: Bool {
+        selectedLength > 0.05
+    }
+    
+    
     init(
         source: AudioSource,
         pxPerSec: CGFloat,
@@ -48,6 +57,7 @@ struct RangePickSheet: View {
         
         
         let safeDuration = max(0, source.durationSec)
+        
         
         
         // şarkı kısa ise clamp
@@ -96,6 +106,7 @@ struct RangePickSheet: View {
                             .font(.title)
                             .foregroundStyle(Color.white)
                     }
+                    .padding(.top, 40)
 
                     
                     VStack(spacing: 8) {
@@ -261,6 +272,8 @@ struct RangePickSheet: View {
                         .padding(.vertical, 8)
                         .padding(.horizontal, 8)
                         .buttonStyle(PressableStyle())
+                        .disabled(!isValidRange)
+                        .opacity(isValidRange ? 1 : 0.5)
                         
                         Spacer()
                         
