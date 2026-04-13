@@ -35,6 +35,11 @@ struct RangePickSheet: View {
         pxPerSec: CGFloat,
         defaultStart: Double = 0,
         defaultEnd: Double = 10,
+        defaultVolume: Float = 1.0,
+        defaultRate: Float = 1.0,
+        defaultReverbMix: Float = 0,
+        defaultFadeInSec: Double = 0,
+        defaultFadeOutSec: Double = 0,
         onConfirm: @escaping (_ start: Double, _ end: Double, _ volume: Float, _ rate: Float, _ reverbMix: Float, _ fadeIn: Double, _ fadeOut: Double) -> Void,
         onCancel: @escaping () -> Void
     ) {
@@ -58,7 +63,13 @@ struct RangePickSheet: View {
 
         _startSec = State(initialValue: s)
         _endSec = State(initialValue: e)
-
+        
+        _volume = State(initialValue: defaultVolume)
+        _rate = State(initialValue: defaultRate)
+        _reverbMix = State(initialValue: defaultReverbMix)
+        _fadeInSec = State(initialValue: defaultFadeInSec)
+        _fadeOutSec = State(initialValue: defaultFadeOutSec)
+        
         self.onConfirm = onConfirm
         self.onCancel = onCancel
         

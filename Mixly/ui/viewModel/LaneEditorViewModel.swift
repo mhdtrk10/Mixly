@@ -37,9 +37,19 @@ final class LaneEditorViewModel: ObservableObject {
         let id = UUID()
         let laneID: UUID
         let itemID: UUID
+        
+        
         let sourceID: UUID
+        let originalSourceID: UUID
+        
         let startSec: Double
         let endSec: Double
+        
+        let volume: Float
+        let rate: Float
+        let reverbMix: Float
+        let fadeInSec: Double
+        let fadeOutSec: Double
     }
 
     // Security scoped
@@ -114,7 +124,18 @@ final class LaneEditorViewModel: ObservableObject {
     // MARK: - Add items (custom: start/length source aralığı)
 
     /// Yeni lane'e ekle (timelineStartSec default 0)
-    func addToNewLane(sourceID: UUID, start: Double, length: Double, timelineStartSec: Double = 0) {
+    func addToNewLane(
+        sourceID: UUID,
+        originalSourceID: UUID,
+        start: Double,
+        length: Double,
+        volume: Float = 1.0,
+        rate: Float = 1.0,
+        reverbMix: Float = 0,
+        fadeInSec: Double = 0,
+        fadeOutSec: Double = 0,
+        timelineStartSec: Double = 0
+    ) {
         guard let src = sources.first(where: { $0.id == sourceID }) else { return }
 
         let safeStart = clamp(start, 0, src.durationSec)
@@ -124,20 +145,37 @@ final class LaneEditorViewModel: ObservableObject {
 
         let item = LaneItem(
             sourceID: sourceID,
+            originalSourceID: originalSourceID,
             sourceStartSec: safeStart,
             lengthSec: safeLen,
-            timelineStartSec: max(0, timelineStartSec)
+            timelineStartSec: max(0, timelineStartSec),
+            volume: volume,
+            rate: rate,
+            reverbMix: reverbMix,
+            fadeInSec: fadeInSec,
+            fadeOutSec: fadeOutSec
         )
 
         lane.items.append(item)
         lanes.append(lane)
         selectedLaneID = lane.id
         resetPlayHead()
-        //print("✅ addToNewLane CUSTOM:", sourceID, "t=\(timelineStartSec)", "src=\(safeStart)", "len=\(safeLen)")
     }
 
     /// Var olan lane'in sağına ekle. timelineStartSec verilmezse lane'in sonuna ekler.
-    func addToRight(of laneID: UUID, sourceID: UUID, start: Double, length: Double, timelineStartSec: Double? = nil) {
+    func addToRight(
+        of laneID: UUID,
+        sourceID: UUID,
+        originalSourceID: UUID,
+        start: Double,
+        length: Double,
+        volume: Float = 1.0,
+        rate: Float = 1.0,
+        reverbMix: Float = 0,
+        fadeInSec: Double = 0,
+        fadeOutSec: Double = 0,
+        timelineStartSec: Double? = nil
+    ) {
         guard let src = sources.first(where: { $0.id == sourceID }) else { return }
         guard let laneIndex = lanes.firstIndex(where: { $0.id == laneID }) else { return }
 
@@ -149,15 +187,20 @@ final class LaneEditorViewModel: ObservableObject {
 
         let item = LaneItem(
             sourceID: sourceID,
+            originalSourceID: originalSourceID,
             sourceStartSec: safeStart,
             lengthSec: safeLen,
-            timelineStartSec: tStart
+            timelineStartSec: tStart,
+            volume: volume,
+            rate: rate,
+            reverbMix: reverbMix,
+            fadeInSec: fadeInSec,
+            fadeOutSec: fadeOutSec
         )
 
         lanes[laneIndex].items.append(item)
         selectedLaneID = laneID
         resetPlayHead()
-        //print("✅ addToRight CUSTOM:", sourceID, "t=\(tStart)", "src=\(safeStart)", "len=\(safeLen)")
     }
 
     // MARK: - Move item on timeline (drag)
@@ -178,24 +221,79 @@ final class LaneEditorViewModel: ObservableObject {
             laneID: laneID,
             itemID: item.id,
             sourceID: item.sourceID,
+            originalSourceID: item.originalSourceID,
             startSec: item.sourceStartSec,
-            endSec: end
+            endSec: end,
+            volume: item.volume,
+            rate: item.rate,
+            reverbMix: item.reverbMix,
+            fadeInSec: item.fadeInSec,
+            fadeOutSec: item.fadeOutSec
         )
         
     }
 
-    func updateItem(laneID: UUID, itemID: UUID, start: Double, end: Double) {
+    func updateItem(
+        laneID: UUID,
+        itemID: UUID,
+        originalSourceID: UUID,
+        start: Double,
+        end: Double,
+        volume: Float,
+        rate: Float,
+        reverbMix: Float,
+        fadeInSec: Double,
+        fadeOutSec: Double
+    ) async {
+        
         guard let laneIndex = lanes.firstIndex(where: { $0.id == laneID }) else { return }
         guard let itemIndex = lanes[laneIndex].items.firstIndex(where: { $0.id == itemID }) else { return }
-        guard let src = sources.first(where: { $0.id == lanes[laneIndex].items[itemIndex].sourceID }) else { return }
+        guard let originalSrc = sources.first(where: { $0.id == originalSourceID }) else {
+            print("❌ original source bulunamadı")
+            return
+        }
 
-        let s = clamp(start, 0, src.durationSec)
-        let e = clamp(end, s, src.durationSec)
-        let len = max(0, e - s)
+        let s = clamp(start, 0, originalSrc.durationSec)
+        let e = clamp(end, s, originalSrc.durationSec)
 
-        lanes[laneIndex].items[itemIndex].sourceStartSec = s
-        lanes[laneIndex].items[itemIndex].lengthSec = len
-    
+        guard let processedURL = await createProcessedClip(
+            sourceURL: originalSrc.url,
+            startSec: s,
+            endSec: e,
+            volume: volume,
+            rate: rate,
+            reverbMix: reverbMix,
+            fadeInSec: fadeInSec,
+            fadeOutSec: fadeOutSec
+        ) else {
+            print("❌ processed clip üretilemedi")
+            return
+        }
+
+        guard let newSource = await makeProcessedSource(
+            from: processedURL,
+            originalName: originalSrc.displayName
+        ) else {
+            print("❌ newSource oluşturulamadı")
+            return
+        }
+
+        sources.append(newSource)
+
+        let newLength = newSource.durationSec
+
+        lanes[laneIndex].items[itemIndex].sourceID = newSource.id
+        lanes[laneIndex].items[itemIndex].originalSourceID = originalSourceID
+
+        lanes[laneIndex].items[itemIndex].sourceStartSec = 0
+        lanes[laneIndex].items[itemIndex].lengthSec = newLength
+
+        lanes[laneIndex].items[itemIndex].volume = volume
+        lanes[laneIndex].items[itemIndex].rate = rate
+        lanes[laneIndex].items[itemIndex].reverbMix = reverbMix
+        lanes[laneIndex].items[itemIndex].fadeInSec = fadeInSec
+        lanes[laneIndex].items[itemIndex].fadeOutSec = fadeOutSec
+
         resetPlayHead()
     }
 
@@ -279,7 +377,7 @@ final class LaneEditorViewModel: ObservableObject {
                 selectedLaneID = lanes.first?.id
             }
         }
-        
+        stopPlayBack()
     }
     
     func startPlayHead(from sec: Double = 0) {

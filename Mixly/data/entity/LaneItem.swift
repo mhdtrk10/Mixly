@@ -11,21 +11,22 @@ import Foundation
 struct LaneItem: Identifiable, Equatable {
     
     let id: UUID = UUID()
+    var sourceID: UUID
+    var originalSourceID: UUID
     
-    // hangi kaynak şarkı geliyor
-    let sourceID: UUID
     
-    // kaynak şarkının içinde kaçıncı saniyeden başlayacak
+    
     var sourceStartSec: Double
-    
-    // kaç saniye sürecek
     var lengthSec: Double
-    
-    // global timeline da kaçıncı saniyede başlayacak
     var timelineStartSec: Double
     
-    //ses yüksekliği için
+    
     var volume: Float = 1.0
+    var rate: Float = 1.0
+    var reverbMix: Float = 0.0
+    var fadeInSec: Double = 0.0
+    var fadeOutSec: Double = 0.0
+    
     
     // kaynak şarkın içinde bitiş saniyesi
     var sourceEndSec: Double {

@@ -333,8 +333,14 @@ struct LaneEditorView: View {
                             case .firstOrNewLane:
                                 vm.addToNewLane(
                                     sourceID: newSource.id,
+                                    originalSourceID: src.id,
                                     start: 0,
-                                    length: processedLength
+                                    length: processedLength,
+                                    volume: volume,
+                                    rate: rate,
+                                    reverbMix: reverbMix,
+                                    fadeInSec: fadeInSec,
+                                    fadeOutSec: fadeOutSec
                                 )
                                 
                             case .appendRight:
@@ -342,14 +348,26 @@ struct LaneEditorView: View {
                                     vm.addToRight(
                                         of: laneID,
                                         sourceID: newSource.id,
+                                        originalSourceID: src.id,
                                         start: 0,
-                                        length: processedLength
+                                        length: processedLength,
+                                        volume: volume,
+                                        rate: rate,
+                                        reverbMix: reverbMix,
+                                        fadeInSec: fadeInSec,
+                                        fadeOutSec: fadeOutSec
                                     )
                                 } else {
                                     vm.addToNewLane(
                                         sourceID: newSource.id,
+                                        originalSourceID: src.id,
                                         start: 0,
-                                        length: processedLength
+                                        length: processedLength,
+                                        volume: volume,
+                                        rate: rate,
+                                        reverbMix: reverbMix,
+                                        fadeInSec: fadeInSec,
+                                        fadeOutSec: fadeOutSec
                                     )
                                 }
                             }
@@ -370,14 +388,33 @@ struct LaneEditorView: View {
 
         // item tıkla → düzenle
         .sheet(item: $vm.editingItem) { edit in
-            if let src = vm.sources.first(where: { $0.id == edit.sourceID }) {
+            if let src = vm.sources.first(where: { $0.id == edit.originalSourceID }) {
                 RangePickSheet(
                     source: src,
                     pxPerSec: pxPerSec,
                     defaultStart: edit.startSec,
                     defaultEnd: edit.endSec,
+                    defaultVolume: edit.volume,
+                    defaultRate: edit.rate,
+                    defaultReverbMix: edit.reverbMix,
+                    defaultFadeInSec: edit.fadeInSec,
+                    defaultFadeOutSec: edit.fadeOutSec,
                     onConfirm: { start, end, volume, rate, reverbMix, fadeInSec, fadeOutSec in
-                        vm.updateItem(laneID: edit.laneID, itemID: edit.itemID, start: start, end: end)
+                        Task { @MainActor in
+                            await vm.updateItem(
+                                laneID: edit.laneID,
+                                itemID: edit.itemID,
+                                originalSourceID: edit.originalSourceID,
+                                start: start,
+                                end: end,
+                                volume: volume,
+                                rate: rate,
+                                reverbMix: reverbMix,
+                                fadeInSec: fadeInSec,
+                                fadeOutSec: fadeOutSec
+                            )
+                            vm.editingItem = nil
+                        }
                         vm.editingItem = nil
                     },
                     onCancel: {
